@@ -1,0 +1,237 @@
+﻿/* ==========================================================================
+   TEACHER DASHBOARD & REPORTS (teacher.css)
+   ========================================================================== */
+
+.teacher-layout {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 5rem;
+}
+
+.teacher-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2.25rem;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}
+
+.teacher-title {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.teacher-subtitle {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin-top: 0.25rem;
+}
+
+.teacher-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* Alert Items */
+.alert-section {
+  margin-bottom: 2.25rem;
+}
+
+.alert-item {
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  border-left: 5px solid var(--danger);
+  border-radius: var(--radius-sm);
+  padding: 1.1rem 1.35rem;
+  margin-bottom: 0.85rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.alert-item-icon {
+  font-size: 1.2rem;
+  color: var(--danger);
+  margin-top: 0.15rem;
+}
+
+.alert-item-title {
+  font-weight: 800;
+  color: var(--danger);
+  font-size: 0.95rem;
+}
+
+.alert-item-msg {
+  font-size: 0.875rem;
+  color: var(--text);
+  margin-top: 0.25rem;
+}
+
+.alert-item-time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.35rem;
+}
+
+/* Performance by Game Cards */
+.game-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.game-stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+}
+
+.game-stat-card-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.game-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.45rem 0;
+  border-bottom: 1px dashed var(--border);
+  font-size: 0.875rem;
+}
+
+.game-stat-row:last-of-type {
+  border-bottom: none;
+}
+
+.game-stat-row-label {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.game-stat-row-val {
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* AI Question Generator Card */
+.ai-generator-card {
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, rgba(124, 58, 237, 0.08) 100%);
+  border: 1.5px solid rgba(79, 70, 229, 0.25);
+  border-radius: var(--radius);
+  padding: 2.25rem;
+  margin-top: 2.5rem;
+}
+
+.ai-generator-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  margin-bottom: 0.45rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--text);
+}
+
+.ai-generator-desc {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.ai-generator-form {
+  display: flex;
+  gap: 0.85rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ai-select {
+  max-width: 240px;
+  min-height: 44px;
+}
+
+.ai-input-id {
+  max-width: 110px;
+  min-height: 44px;
+}
+
+/* Status Badges in Reports */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-full);
+  font-size: 0.775rem;
+  font-weight: 700;
+}
+
+.status-badge-ok {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--success);
+}
+
+.status-badge-warn {
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--accent);
+}
+
+.status-badge-danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--danger);
+}
+
+.rank-badge {
+  font-weight: 900;
+  font-size: 0.95rem;
+}
+
+.rank-1 { color: #F59E0B; }
+.rank-2 { color: #94A3B8; }
+.rank-3 { color: #CD7F32; }
+.rank-other { color: var(--text-muted); }
+
+.student-danger-row {
+  background: rgba(239, 68, 68, 0.04);
+}
+
+.student-danger-badge {
+  font-size: 0.7rem;
+  color: var(--danger);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.15rem;
+}
+
+/* Print Stylesheet */
+@media print {
+  .navbar, .a11y-bar, .footer, .teacher-actions, .ai-generator-card {
+    display: none !important;
+  }
+  body {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+  }
+  .card {
+    box-shadow: none !important;
+    border: 1px solid #CCCCCC !important;
+  }
+}
