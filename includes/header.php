@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 if (session_status() === PHP_SESSION_NONE) session_start();
 $pageTitle = $pageTitle ?? 'MathPlay Solutions';
 ?>
@@ -48,7 +48,7 @@ $pageTitle = $pageTitle ?? 'MathPlay Solutions';
 <nav class="navbar" role="navigation" aria-label="Navegacao principal">
   <div class="nav-container">
     <a href="/vortex/index.php" class="nav-logo" aria-label="MathPlay - Inicio">
-      <img src="/vortex/logo/logo.png" alt="Logo MathPlay" class="nav-logo-img">
+      <img src="/vortex/assets/images/logo.png" alt="Logo MathPlay" class="nav-logo-img">
       <span class="nav-logo-text">MathPlay</span>
     </a>
     <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false" aria-controls="navLinks">
