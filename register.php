@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 $pageTitle = 'Criar Conta';
 require_once __DIR__ . '/includes/auth.php';
 
@@ -9,27 +9,34 @@ if (isLoggedIn()) {
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $name     = trim($_POST['name'] ?? '');
-    $email    = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
-    $confirm  = $_POST['confirm'] ?? '';
-    $role     = in_array($_POST['role'] ?? '', ['student', 'teacher']) ? $_POST['role'] : 'student';
+    // Verificação CSRF
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        $error = 'Token de segurança inválido. Recarregue a página e tente novamente.';
+    }
+    $name       = trim($_POST['name'] ?? '');
+    $email      = trim($_POST['email'] ?? '');
+    $password   = $_POST['password'] ?? '';
+    $confirm    = $_POST['confirm'] ?? '';
+    $role       = in_array($_POST['role'] ?? '', ['student', 'teacher']) ? $_POST['role'] : 'student';
+    $inviteCode = trim($_POST['invite_code'] ?? '');
 
-    if (!$name || !$email || !$password || !$confirm) {
-        $error = 'Preencha todos os campos.';
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = 'E-mail invalido.';
-    } elseif (strlen($password) < 6) {
-        $error = 'A senha deve ter pelo menos 6 caracteres.';
-    } elseif ($password !== $confirm) {
-        $error = 'As senhas nao conferem.';
-    } else {
-        $r = registerUser($name, $email, $password, $role);
-        if ($r['success']) {
-            header('Location: ' . ($r['role'] === 'teacher' ? '/vortex/teacher/dashboard.php' : '/vortex/dashboard.php'));
-            exit;
+    if (!$error) {
+        if (!$name || !$email || !$password || !$confirm) {
+            $error = 'Preencha todos os campos.';
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $error = 'E-mail invalido.';
+        } elseif (strlen($password) < 6) {
+            $error = 'A senha deve ter pelo menos 6 caracteres.';
+        } elseif ($password !== $confirm) {
+            $error = 'As senhas nao conferem.';
         } else {
-            $error = $r['message'];
+            $r = registerUser($name, $email, $password, $role, $inviteCode);
+            if ($r['success']) {
+                header('Location: ' . ($r['role'] === 'teacher' ? '/vortex/teacher/dashboard.php' : '/vortex/dashboard.php'));
+                exit;
+            } else {
+                $error = $r['message'];
+            }
         }
     }
 }
@@ -55,7 +62,7 @@ require_once __DIR__ . '/includes/header.php';
   <div class="auth-form-wrap">
     <div class="auth-form-inner">
       <a href="/vortex/index.php" class="auth-logo">
-        <img src="/vortex/logo/logo.png" alt="Logo MathPlay" class="auth-logo-img">
+        <img src="/vortex/assets/images/logo.png" alt="Logo MathPlay" class="auth-logo-img">
         <span class="auth-logo-text">MathPlay</span>
       </a>
       <h1 class="auth-title">Criar conta gratis</h1>
@@ -68,24 +75,25 @@ require_once __DIR__ . '/includes/header.php';
         </div>
       <?php endif; ?>
 
-      <form method="POST" novalidate>
+      <form method="POST" autocomplete="off" novalidate>
+        <input type="hidden" name="csrf_token" value="<?= generateCsrfToken() ?>">
         <div class="form-group">
           <label class="form-label" for="name">Nome completo</label>
           <input type="text" id="name" name="name" class="form-control" placeholder="Seu nome completo"
-            value="<?= htmlspecialchars($_POST['name'] ?? '') ?>" required aria-required="true">
+            value="<?= htmlspecialchars($_POST['name'] ?? '') ?>" required autocomplete="off" aria-required="true">
         </div>
         <div class="form-group">
           <label class="form-label" for="email">E-mail</label>
           <input type="email" id="email" name="email" class="form-control" placeholder="seu@email.com"
-            value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" required autocomplete="email" aria-required="true">
+            value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" required autocomplete="off" aria-required="true">
         </div>
         <div class="form-group">
           <label class="form-label" for="password">Senha <span class="form-label-hint">(min. 6 caracteres)</span></label>
-          <input type="password" id="password" name="password" class="form-control" placeholder="Crie uma senha forte" required minlength="6" aria-required="true">
+          <input type="password" id="password" name="password" class="form-control" placeholder="Crie uma senha forte" required minlength="6" autocomplete="new-password" aria-required="true">
         </div>
         <div class="form-group">
           <label class="form-label" for="confirm">Confirmar senha</label>
-          <input type="password" id="confirm" name="confirm" class="form-control" placeholder="Repita a senha" required aria-required="true">
+          <input type="password" id="confirm" name="confirm" class="form-control" placeholder="Repita a senha" required autocomplete="new-password" aria-required="true">
         </div>
         <div class="form-group">
           <label class="form-label">Tipo de conta</label>
@@ -97,15 +105,36 @@ require_once __DIR__ . '/includes/header.php';
             </label>
             <label class="radio-card <?= (($_POST['role'] ?? '') === 'teacher') ? 'selected' : '' ?>">
               <input type="radio" name="role" value="teacher" <?= (($_POST['role'] ?? '') === 'teacher') ? 'checked' : '' ?>
-                onchange="document.querySelectorAll('.radio-card').forEach(c=>c.classList.remove('selected'));this.closest('.radio-card').classList.add('selected')">
+                onchange="document.querySelectorAll('.radio-card').forEach(c=>c.classList.remove('selected'));this.closest('.radio-card').classList.add('selected');document.getElementById('invite-wrap').style.display='block'">
               <i class="fa-solid fa-chalkboard-user"></i> Professor
             </label>
           </div>
         </div>
+
+        <!-- Código de convite — aparece só quando Professor for selecionado -->
+        <div class="form-group" id="invite-wrap" style="display:<?= (($_POST['role'] ?? '') === 'teacher') ? 'block' : 'none' ?>;">
+          <label class="form-label" for="invite_code">
+            Código de Convite <span class="form-label-hint">(obrigatório para Professores)</span>
+          </label>
+          <input type="text" id="invite_code" name="invite_code" class="form-control"
+            placeholder="Digite o código fornecido pela instituição"
+            value="<?= htmlspecialchars($_POST['invite_code'] ?? '') ?>">
+        </div>
+
         <button type="submit" class="btn btn-primary btn-block">
           <i class="fa-solid fa-rocket"></i> Criar Minha Conta
         </button>
       </form>
+      <!-- Ocultar campo convite quando Aluno estiver selecionado -->
+      <script>
+        document.querySelectorAll('input[name="role"]').forEach(function(r){
+          if(r.value==='student'){
+            r.addEventListener('change',function(){
+              document.getElementById('invite-wrap').style.display='none';
+            });
+          }
+        });
+      </script>
       <p class="auth-footer-text">
         Ja tem conta? <a href="/vortex/login.php" class="auth-footer-link">Entrar agora</a>
       </p>

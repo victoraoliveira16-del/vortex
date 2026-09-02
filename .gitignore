@@ -1,0 +1,13 @@
+﻿# Variaveis de ambiente -- NUNCA versionar
+.env
+
+# Banco local
+schema.db
+*.db
+
+# Dependencias e cache
+vendor/
+node_modules/
+
+# Logs
+*.log

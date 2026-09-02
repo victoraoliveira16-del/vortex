@@ -138,7 +138,18 @@ require_once __DIR__ . '/../includes/header.php';
 </div>
 
 <script>
-var questions = <?= json_encode(array_values($questions)) ?>;
+// Gabarito removido: apenas campos de exibição são enviados ao cliente
+var questions = <?= json_encode(array_values(array_map(function($q){
+    return [
+        'id'            => (int)$q['id'],
+        'question_text' => $q['question_text'],
+        'option_a'      => $q['option_a'],
+        'option_b'      => $q['option_b'],
+        'option_c'      => $q['option_c'],
+        'option_d'      => $q['option_d'],
+        'difficulty'    => $q['difficulty'],
+    ];
+}, $questions))) ?>;
 var gameId    = <?= (int)$game['id'] ?>;
 var current   = 0;
 var score     = 0;
@@ -185,9 +196,12 @@ function loadQuestion(){
   keys.forEach(function(k, i){
     var btn = document.createElement('button');
     btn.className = 'option-btn';
-    btn.innerHTML = '<span class="option-letter">' + opts[i] + '</span><span>' + q[k] + '</span>';
-    btn.onclick = function(){ if(!answered) selectAnswer(opts[i], btn, q); };
-    btn.setAttribute('aria-label', 'Opcao ' + opts[i] + ': ' + q[k]);
+    btn.innerHTML = '<span class="option-letter">' + opts[i] + '</span><span>' + (q[k] || '') + '</span>';
+    btn.onclick = function(){
+      if(answered) return;
+      selectAnswer(opts[i], btn, q);
+    };
+    btn.setAttribute('aria-label', 'Opcao ' + opts[i] + ': ' + (q[k] || ''));
     grid.appendChild(btn);
   });
 
@@ -201,31 +215,48 @@ function loadQuestion(){
   }, document.getElementById('timer'));
 }
 
-function selectAnswer(chosen, btnEl, q){
+async function selectAnswer(chosen, btnEl, q){
   if(answered) return;
   answered = true;
   stopTimer();
-  var pts = 0;
+
   var allBtns = document.querySelectorAll('.option-btn');
   allBtns.forEach(function(b){ b.disabled = true; });
 
-  if(chosen === q.correct_answer){
-    pts = hintUsed ? 45 : 50;
+  if(btnEl) btnEl.classList.add('selected');
+
+  // Valida no servidor — gabarito nunca fica no client
+  var result = await checkAnswer(gameId, q.id, chosen, hintUsed);
+  if(btnEl) btnEl.classList.remove('selected');
+
+  if(!result || !result.success){
+    answered = false;
+    allBtns.forEach(function(b){ b.disabled = false; });
+    showToast('Nao foi possivel confirmar a resposta. Tente novamente.', 'error');
+    return;
+  }
+
+  var isCorrect     = !!(result && result.correct);
+  var pts           = (result && result.points) || 0;
+  var correctLetter = (result && result.correct_letter) || '';
+  var explanation   = (result && result.explanation) || '';
+
+  if(isCorrect){
     score += pts;
     correct++;
     if(btnEl) btnEl.classList.add('correct');
     flashCorrect();
-    showFeedback(true, 'Perfeito, Chef!', q.explanation || 'Excelente resposta!');
+    showFeedback(true, 'Perfeito, Chef!', explanation || 'Excelente resposta!');
     showToast('Acertou! +' + pts + ' pontos', 'success');
   } else {
     wrong++;
     if(btnEl) btnEl.classList.add('wrong');
     var opts = ['A','B','C','D'];
     allBtns.forEach(function(b, i){
-      if(opts[i] === q.correct_answer) b.classList.add('correct');
+      if(opts[i] === correctLetter) b.classList.add('correct');
     });
     flashWrong();
-    showFeedback(false, 'Quase la!', q.explanation || ('A resposta correta era a opcao ' + q.correct_answer));
+    showFeedback(false, 'Quase la!', explanation || (correctLetter ? 'A resposta correta era a opcao ' + correctLetter : 'Resposta incorreta.'));
     showToast('Errou! Veja a explicacao detalhada', 'error');
   }
   document.getElementById('score').textContent = score;
@@ -292,7 +323,7 @@ function showResult(){
     }(i), i * 250);
   }
 
-  saveScore(gameId, score, correct, wrong, elapsed, 'easy');
+  saveScore(gameId, elapsed, 'easy', score, correct, wrong);
 }
 
 function restartGame(){

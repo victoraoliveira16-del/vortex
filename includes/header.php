@@ -1,6 +1,15 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) session_start();
+require_once __DIR__ . '/auth.php';
 $pageTitle = $pageTitle ?? 'MathPlay Solutions';
+$pageStyles = $pageStyles ?? match (true) {
+  str_ends_with($_SERVER['SCRIPT_NAME'] ?? '', '/index.php') && str_contains($_SERVER['SCRIPT_NAME'] ?? '', '/games/') => ['games.css'],
+  str_contains($_SERVER['SCRIPT_NAME'] ?? '', '/games/') => ['games.css'],
+  str_contains($_SERVER['SCRIPT_NAME'] ?? '', '/teacher/') => ['teacher.css'],
+  str_ends_with($_SERVER['SCRIPT_NAME'] ?? '', '/login.php') || str_ends_with($_SERVER['SCRIPT_NAME'] ?? '', '/register.php') => ['auth.css'],
+  str_ends_with($_SERVER['SCRIPT_NAME'] ?? '', '/dashboard.php') => ['dashboard.css'],
+  str_ends_with($_SERVER['SCRIPT_NAME'] ?? '', '/profile.php') => ['profile.css'],
+  default => ['landing.css'],
+};
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -21,14 +30,12 @@ $pageTitle = $pageTitle ?? 'MathPlay Solutions';
   <!-- AOS Animations -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css">
   
-  <!-- Modular Custom CSS (No inline styles in PHP) -->
+  <!-- Modular Custom CSS -->
   <link rel="stylesheet" href="/vortex/assets/css/style.css">
-  <link rel="stylesheet" href="/vortex/assets/css/landing.css">
-  <link rel="stylesheet" href="/vortex/assets/css/auth.css">
-  <link rel="stylesheet" href="/vortex/assets/css/dashboard.css">
-  <link rel="stylesheet" href="/vortex/assets/css/profile.css">
-  <link rel="stylesheet" href="/vortex/assets/css/games.css">
-  <link rel="stylesheet" href="/vortex/assets/css/teacher.css">
+  <?php foreach ($pageStyles as $pageStyle): ?>
+    <link rel="stylesheet" href="/vortex/assets/css/<?= htmlspecialchars($pageStyle) ?>">
+  <?php endforeach; ?>
+  <meta name="csrf-token" content="<?= generateCsrfToken() ?>">
 </head>
 <body>
 

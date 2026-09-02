@@ -5,26 +5,54 @@ $pageTitle = 'Instalador do Banco de Dados';
 $message = '';
 $status = '';
 
-if (isset($_POST['install']) || php_sapi_name() === 'cli') {
-    try {
-        $pdo = new PDO('mysql:host=localhost;charset=utf8mb4', 'root', '', [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_EMULATE_PREPARES => false,
-        ]);
-        
-        $sqlPath = __DIR__ . '/mathplay.sql';
-        if (!file_exists($sqlPath)) {
-            throw new Exception('Arquivo mathplay.sql não encontrado no diretório database.');
+$envPath = __DIR__ . '/../.env';
+$_env = file_exists($envPath) ? (parse_ini_file($envPath) ?: []) : [];
+
+$username = $_env['DB_USER'] ?? 'root';
+$password = $_env['DB_PASS'] ?? '';
+
+$credentialCandidates = [];
+$seen = [];
+foreach ([$username, 'root'] as $user) {
+    foreach ([$password, '', 'mysql'] as $pass) {
+        $key = $user . "\0" . $pass;
+        if (isset($seen[$key])) {
+            continue;
         }
-        
-        $sql = file_get_contents($sqlPath);
-        $pdo->exec($sql);
-        
-        $message = 'Banco de dados `mathplay` instalado e populado com sucesso!';
-        $status = 'success';
-    } catch (Exception $e) {
-        $message = 'Erro ao instalar banco: ' . $e->getMessage();
+        $seen[$key] = true;
+        $credentialCandidates[] = [$user, $pass];
+    }
+}
+
+if (isset($_POST['install']) || php_sapi_name() === 'cli') {
+    $sqlPath = __DIR__ . '/mathplay.sql';
+    if (!file_exists($sqlPath)) {
+        $message = 'Arquivo mathplay.sql não encontrado no diretório database.';
         $status = 'danger';
+    } else {
+        $lastError = null;
+        foreach ($credentialCandidates as [$candidateUser, $candidatePass]) {
+            try {
+                $pdo = new PDO('mysql:host=127.0.0.1;port=3306;charset=utf8mb4', $candidateUser, $candidatePass, [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_EMULATE_PREPARES => false,
+                ]);
+
+                $sql = file_get_contents($sqlPath);
+                $pdo->exec($sql);
+
+                $message = 'Banco de dados `mathplay` instalado e populado com sucesso!';
+                $status = 'success';
+                break;
+            } catch (Exception $e) {
+                $lastError = $e;
+            }
+        }
+
+        if ($status !== 'success' && $lastError) {
+            $message = 'Erro ao instalar banco: ' . $lastError->getMessage();
+            $status = 'danger';
+        }
     }
 }
 ?>
@@ -35,28 +63,28 @@ if (isset($_POST['install']) || php_sapi_name() === 'cli') {
   <title>Instalador do Banco de Dados — MathPlay Solutions</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="/vortex/assets/css/style.css">
-  <link rel="stylesheet" href="/vortex/assets/css/auth.css">
+  <link rel="stylesheet" href="/vortex/assets/css/install.css">
 </head>
-<body style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);padding:2rem;">
-  <div class="card" style="max-width:540px;width:100%;padding:2.5rem;text-align:center;">
-    <div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto 1.5rem;">
+<body class="install-page">
+  <div class="card install-card">
+    <div class="install-icon">
       <i class="fa-solid fa-database"></i>
     </div>
     
-    <h1 style="font-size:1.6rem;font-weight:800;margin-bottom:0.5rem;color:var(--text);">Instalador do Banco de Dados</h1>
-    <p style="color:var(--text-muted);font-size:0.92rem;margin-bottom:2rem;">
+    <h1 class="install-title">Instalador do Banco de Dados</h1>
+    <p class="install-description">
       Clique no botão abaixo para criar o banco <code>mathplay</code> e inserir todas as tabelas, conquistas e questões automaticamente.
     </p>
 
     <?php if ($message): ?>
-      <div class="alert alert-<?= $status ?>" style="margin-bottom:2rem;">
+      <div class="alert alert-<?= $status ?> install-alert">
         <i class="fa-solid <?= $status === 'success' ? 'fa-circle-check' : 'fa-triangle-exclamation' ?>"></i>
         <span><?= htmlspecialchars($message) ?></span>
       </div>
     <?php endif; ?>
 
     <?php if ($status === 'success'): ?>
-      <div style="display:flex;gap:1rem;justify-content:center;">
+      <div class="install-actions">
         <a href="/vortex/index.php" class="btn btn-primary">
           <i class="fa-solid fa-house"></i> Ir para a Página Inicial
         </a>

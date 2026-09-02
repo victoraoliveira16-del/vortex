@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 $pageTitle = 'Entrar';
 require_once __DIR__ . '/includes/auth.php';
 
@@ -9,7 +9,15 @@ if (isLoggedIn()) {
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = $_POST['email'] ?? '';
+    // Verificação CSRF
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        $error = 'Token de segurança inválido. Recarregue a página e tente novamente.';
+    }
+    // Rate limit anti brute-force
+    if (!$error && ($rl = checkLoginRateLimit())) {
+        $error = $rl;
+    }
+    $email    = $_POST['email'] ?? '';
     $password = $_POST['password'] ?? '';
     if (!$email || !$password) {
         $error = 'Preencha todos os campos.';
@@ -45,7 +53,7 @@ require_once __DIR__ . '/includes/header.php';
   <div class="auth-form-wrap">
     <div class="auth-form-inner">
       <a href="/vortex/index.php" class="auth-logo">
-        <img src="/vortex/logo/logo.png" alt="Logo MathPlay" class="auth-logo-img">
+        <img src="/vortex/assets/images/logo.png" alt="Logo MathPlay" class="auth-logo-img">
         <span class="auth-logo-text">MathPlay</span>
       </a>
       <h1 class="auth-title">Entrar na plataforma</h1>
@@ -58,15 +66,16 @@ require_once __DIR__ . '/includes/header.php';
         </div>
       <?php endif; ?>
 
-      <form method="POST" novalidate>
+      <form method="POST" autocomplete="off" novalidate>
+        <input type="hidden" name="csrf_token" value="<?= generateCsrfToken() ?>">
         <div class="form-group">
           <label class="form-label" for="email">E-mail</label>
           <input type="email" id="email" name="email" class="form-control" placeholder="seu@email.com"
-            value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" required autocomplete="email" aria-required="true">
+            value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" required autocomplete="off" aria-required="true">
         </div>
         <div class="form-group">
           <label class="form-label" for="password">Senha</label>
-          <input type="password" id="password" name="password" class="form-control" placeholder="Sua senha" required autocomplete="current-password" aria-required="true">
+          <input type="password" id="password" name="password" class="form-control" placeholder="Sua senha" required autocomplete="new-password" aria-required="true">
         </div>
         <button type="submit" class="btn btn-primary btn-block">
           <i class="fa-solid fa-right-to-bracket"></i> Entrar

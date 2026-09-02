@@ -1,4 +1,4 @@
-﻿// MathPlay Solutions — main.js
+// MathPlay Solutions — main.js
 
 // Preferences initialization (IIFE)
 (function applyPrefs(){
@@ -168,23 +168,67 @@ function flashScreen(color){
   setTimeout(function(){ overlay.remove(); }, 400);
 }
 
-// Async Score Saving API
-async function saveScore(gameId, score, correct, wrong, timeSpent, difficulty){
+// Lê o CSRF token do meta tag injetado pelo header.php
+function getCsrfToken(){
+  var m = document.querySelector('meta[name="csrf-token"]');
+  return m ? m.getAttribute('content') : '';
+}
+
+// Validação server-side de resposta (gabarito nunca fica no client)
+async function checkAnswer(gameId, questionId, chosen, hintUsed){
+  var controller = new AbortController();
+  var timeout = setTimeout(function(){ controller.abort(); }, 10000);
   try {
+    var token = getCsrfToken();
+    var res = await fetch('/vortex/api/check_answer.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': token
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        csrf_token: token,
+        game_id: gameId,
+        question_id: questionId,
+        chosen: chosen,
+        hint_used: !!hintUsed
+      })
+    });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    var data = await res.json();
+    return data;
+  } catch(e) {
+    console.error('Erro na chamada checkAnswer:', e);
+    showToast('Erro de conexao ao verificar resposta.', 'error');
+    return { success: false, correct: false, points: 0, explanation: '' };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+// Async Score Saving API — score vem do servidor, não do cliente
+async function saveScore(gameId, timeSpent, difficulty, fallbackScore, fallbackCorrect, fallbackWrong){
+  try {
+    var token = getCsrfToken();
     var res = await fetch('/vortex/api/save_score.php', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': token
+      },
       body: JSON.stringify({
+        csrf_token: token,
         game_id: gameId,
-        score: score,
-        correct: correct,
-        wrong: wrong,
         time_spent: timeSpent,
-        difficulty: difficulty
+        difficulty: difficulty,
+        score: fallbackScore || 0,
+        correct: fallbackCorrect || 0,
+        wrong: fallbackWrong || 0
       })
     });
     var data = await res.json();
-    if(data.success){
+    if(data && data.success){
       animateXP(data.xp_gained);
       showToast('Pontuacao e XP computados com sucesso!', 'success');
     }

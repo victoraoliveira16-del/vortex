@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once __DIR__ . '/../includes/auth.php';
 header('Content-Type: application/json');
 if(!isLoggedIn()){echo json_encode(['error'=>'Nao autenticado']);exit;}
@@ -6,7 +6,9 @@ $data=json_decode(file_get_contents('php://input'),true);
 $userId=(int)$_SESSION['user_id'];
 $topic=$data['topic']??'';
 $gameId=(int)($data['game_id']??0);
-$ANTHROPIC_KEY='YOUR_ANTHROPIC_API_KEY_HERE';
+// Chave lida do .env (nunca hardcoded)
+$_envCfg = parse_ini_file(__DIR__ . '/../.env') ?: [];
+$ANTHROPIC_KEY = $_envCfg['ANTHROPIC_API_KEY'] ?? '';
 $stmt=$pdo->prepare('SELECT SUM(wrong_answers) AS e,SUM(correct_answers) AS a,SUM(wrong_answers+correct_answers) AS t FROM game_sessions gs JOIN games g ON g.id=gs.game_id WHERE gs.user_id=? AND g.topic=?');
 $stmt->execute([$userId,$topic]);
 $stats=$stmt->fetch();

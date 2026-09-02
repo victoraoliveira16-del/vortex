@@ -139,8 +139,19 @@ require_once __DIR__ . '/../includes/header.php';
 </div>
 
 <script>
-var questions = <?= json_encode(array_values($questions)) ?>;
-var gameId    = <?= (int)$game['id'] ?>;
+// Gabarito removido: apenas campos de exibição são enviados ao cliente
+var questions = <?= json_encode(array_values(array_map(function($q){
+    return [
+        'id'            => (int)$q['id'],
+        'question_text' => $q['question_text'],
+        'option_a'      => $q['option_a'],
+        'option_b'      => $q['option_b'],
+        'option_c'      => $q['option_c'],
+        'option_d'      => $q['option_d'],
+        'difficulty'    => $q['difficulty'],
+    ];
+}, $questions))) ?>;
+var gameId = <?= (int)$game['id'] ?>;
 var current = 0, score = 0, correct = 0, wrong = 0, answered = false, hintUsed = false;
 var buildingCount = 0;
 var startTime = Date.now();
@@ -193,9 +204,12 @@ function loadQuestion(){
   keys.forEach(function(k, i){
     var btn = document.createElement('button');
     btn.className = 'option-btn';
-    btn.innerHTML = '<span class="option-letter">' + opts[i] + '</span><span>' + q[k] + '</span>';
-    btn.onclick = function(){ if(!answered) selectAnswer(opts[i], btn, q); };
-    btn.setAttribute('aria-label', 'Opcao ' + opts[i] + ': ' + q[k]);
+    btn.innerHTML = '<span class="option-letter">' + opts[i] + '</span><span>' + (q[k] || '') + '</span>';
+    btn.onclick = function(){
+      if(answered) return;
+      selectAnswer(opts[i], btn, q);
+    };
+    btn.setAttribute('aria-label', 'Opcao ' + opts[i] + ': ' + (q[k] || ''));
     grid.appendChild(btn);
   });
 
@@ -209,33 +223,50 @@ function loadQuestion(){
   }, document.getElementById('timer'));
 }
 
-function selectAnswer(chosen, btnEl, q){
+async function selectAnswer(chosen, btnEl, q){
   if(answered) return;
   answered = true;
   stopTimer();
-  var pts = 0;
+
   var allBtns = document.querySelectorAll('.option-btn');
   allBtns.forEach(function(b){ b.disabled = true; });
 
-  if(chosen === q.correct_answer){
-    pts = hintUsed ? 45 : 50;
+  if(btnEl) btnEl.classList.add('selected');
+
+  // Valida no servidor — gabarito nunca fica no client
+  var result = await checkAnswer(gameId, q.id, chosen, hintUsed);
+  if(btnEl) btnEl.classList.remove('selected');
+
+  if(!result || !result.success){
+    answered = false;
+    allBtns.forEach(function(b){ b.disabled = false; });
+    showToast('Nao foi possivel confirmar a resposta. Tente novamente.', 'error');
+    return;
+  }
+
+  var isCorrect     = !!(result && result.correct);
+  var pts           = (result && result.points) || 0;
+  var correctLetter = (result && result.correct_letter) || '';
+  var explanation   = (result && result.explanation) || '';
+
+  if(isCorrect){
     score += pts;
     correct++;
     if(btnEl) btnEl.classList.add('correct');
     addBuilding(true);
     flashCorrect();
-    showFeedback(true, 'Edificio Ergido!', q.explanation || 'Excelente calculo geometrico, Arquiteto!');
+    showFeedback(true, 'Edificio Ergido!', explanation || 'Excelente calculo geometrico, Arquiteto!');
     showToast('Acertou! +' + pts + ' pontos — Novo predio construido!', 'success');
   } else {
     wrong++;
     if(btnEl) btnEl.classList.add('wrong');
     var opts = ['A','B','C','D'];
     allBtns.forEach(function(b, i){
-      if(opts[i] === q.correct_answer) b.classList.add('correct');
+      if(opts[i] === correctLetter) b.classList.add('correct');
     });
     addBuilding(false);
     flashWrong();
-    showFeedback(false, 'Falha Estrutural!', q.explanation || ('A resposta correta era a opcao ' + q.correct_answer));
+    showFeedback(false, 'Falha Estrutural!', explanation || (correctLetter ? 'A resposta correta era a opcao ' + correctLetter : 'Resposta incorreta.'));
     showToast('Errou! Revise o calculo da area/perimetro', 'error');
   }
   document.getElementById('score').textContent = score;
@@ -303,7 +334,7 @@ function showResult(){
     }(i), i * 250);
   }
 
-  saveScore(gameId, score, correct, wrong, elapsed, 'easy');
+  saveScore(gameId, elapsed, 'easy', score, correct, wrong);
 }
 
 function restartGame(){
