@@ -45,7 +45,9 @@ require_once __DIR__ . '/includes/header.php';
       <div class="profile-banner"></div>
       <div class="profile-avatar-wrap">
         <div class="avatar" style="background:<?= htmlspecialchars($user['avatar_color']) ?>;" aria-hidden="true">
-          <?= mb_strtoupper(mb_substr($user['name'], 0, 1)) ?>
+          <?php if (!empty($user['profile_photo'])): ?><img src="<?= htmlspecialchars($user['profile_photo']) ?>" alt=""><?php else: ?>
+            <?= mb_strtoupper(mb_substr($user['name'], 0, 1)) ?>
+          <?php endif; ?>
         </div>
       </div>
       <div class="profile-info">
@@ -69,6 +71,10 @@ require_once __DIR__ . '/includes/header.php';
       </div>
       <div class="card-body">
         <div class="flex-col gap-md">
+          <a href="/vortex/games/mental-math.php" class="quick-game-btn quick-game-fractions">
+            <div class="quick-game-icon"><i class="fa-solid fa-calculator"></i></div>
+            <span>Calculadora Mental</span>
+          </a>
           <a href="/vortex/games/fractions.php" class="quick-game-btn quick-game-fractions">
             <div class="quick-game-icon"><i class="fa-solid fa-utensils"></i></div>
             <span>Chef das Fracoes</span>
@@ -149,10 +155,27 @@ require_once __DIR__ . '/includes/header.php';
     <div>
       <h2 class="section-heading"><i class="fa-solid fa-trophy"></i> Suas Conquistas</h2>
       <div class="achievements-grid" aria-label="Conquistas desbloqueadas">
-        <?php foreach ($allAch as $a): $locked = !$a['unlocked']; ?>
+        <?php 
+        $achColors = [
+          'games_played' => '#4F46E5',
+          'xp_total'     => '#F59E0B',
+          'level'        => '#10B981',
+        ];
+        foreach ($allAch as $a): 
+          $locked   = empty($a['unlocked']); 
+          $achColor = $a['color'] ?? ($achColors[$a['condition_type'] ?? ''] ?? '#4F46E5');
+          $achIcon  = !empty($a['icon']) ? $a['icon'] : match($a['condition_type'] ?? ''){
+            'games_played'          => 'fa-gamepad',
+            'score_fractions'       => 'fa-utensils',
+            'games_played_geometry' => 'fa-city',
+            'xp_total'              => 'fa-bolt',
+            'level'                 => 'fa-crown',
+            default                 => 'fa-trophy'
+          };
+        ?>
         <div class="achievement-card <?= $locked ? 'locked' : '' ?>" title="<?= $locked ? 'Conquista Bloqueada' : 'Conquista Desbloqueada!' ?>">
-          <div class="achievement-icon-wrap" style="background:<?= htmlspecialchars($a['color']) ?>;">
-            <i class="fa-solid <?= match($a['condition_type']){'games_played'=>'fa-gamepad','score_fractions'=>'fa-utensils','games_played_geometry'=>'fa-city','xp_total'=>'fa-bolt','level'=>'fa-crown',default=>'fa-trophy'} ?>"></i>
+          <div class="achievement-icon-wrap" style="background:<?= htmlspecialchars($achColor) ?>;">
+            <i class="fa-solid <?= htmlspecialchars($achIcon) ?>"></i>
           </div>
           <div class="achievement-name"><?= htmlspecialchars($a['name']) ?></div>
           <div class="achievement-desc"><?= $locked ? 'Bloqueada' : htmlspecialchars($a['description']) ?></div>
@@ -207,7 +230,7 @@ require_once __DIR__ . '/includes/header.php';
                 <td><span class="score-cell"><?= $s['score'] ?> pts</span></td>
                 <td><span class="hits-cell"><i class="fa-solid fa-check"></i> <?= $s['correct_answers'] ?></span></td>
                 <td><span class="misses-cell"><i class="fa-solid fa-xmark"></i> <?= $s['wrong_answers'] ?></span></td>
-                <td><?= ucfirst($s['difficulty']) ?></td>
+                <td><?= ucfirst((string)($s['difficulty'] ?? 'easy')) ?></td>
                 <td class="date-cell"><?= date('d/m/Y H:i', strtotime($s['played_at'])) ?></td>
               </tr>
               <?php endforeach; ?>

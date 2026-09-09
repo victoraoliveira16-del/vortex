@@ -20,7 +20,7 @@ require_once __DIR__ . '/../includes/header.php';
   <div class="section-header" data-aos="fade-up">
     <span class="section-tag">Biblioteca de Jogos</span>
     <h1 class="section-title">Escolha sua aventura</h1>
-    <p class="section-subtitle">Dois jogos interativos e gamificados para dominar conteudos de Matematica do Ensino Fundamental II.</p>
+    <p class="section-subtitle">Três jogos interativos e gamificados para dominar conteúdos de Matemática do Ensino Fundamental II.</p>
   </div>
 
   <?php if (!isLoggedIn()): ?>
@@ -33,16 +33,19 @@ require_once __DIR__ . '/../includes/header.php';
   <div class="game-grid">
     <?php
     $imgs = [
-        'fractions' => 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&q=85&auto=format&fit=crop',
-        'geometry'  => 'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=800&q=85&auto=format&fit=crop'
+        'fractions'   => 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&q=85&auto=format&fit=crop',
+        'geometry'    => 'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=800&q=85&auto=format&fit=crop',
+        'mental-math' => 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800&q=85&auto=format&fit=crop'
     ];
     $icons = [
-        'fractions' => 'fa-utensils',
-        'geometry'  => 'fa-city'
+        'fractions'   => 'fa-utensils',
+        'geometry'    => 'fa-city',
+        'mental-math' => 'fa-calculator'
     ];
     $cardClasses = [
-        'fractions' => 'game-card-fractions',
-        'geometry'  => 'game-card-geometry'
+        'fractions'   => 'game-card-fractions',
+        'geometry'    => 'game-card-geometry',
+        'mental-math' => 'game-card-mental'
     ];
 
     foreach ($games as $g):
@@ -78,9 +81,17 @@ require_once __DIR__ . '/../includes/header.php';
       </div>
       <div class="game-card-footer">
         <span class="game-difficulty">
-          <i class="fa-solid fa-signal text-success"></i> Facil a Dificil
+          <i class="fa-solid fa-bolt text-warning"></i> 15s por Questão
         </span>
-        <span><?= $g['slug'] === 'fractions' ? '<i class="fa-solid fa-lightbulb"></i> Dicas + Leitura em Voz' : '<i class="fa-solid fa-city"></i> Construcao Skyline Visual' ?></span>
+        <span>
+          <?php if($g['slug'] === 'fractions'): ?>
+            <i class="fa-solid fa-lightbulb"></i> Dicas + Leitura em Voz
+          <?php elseif($g['slug'] === 'geometry'): ?>
+            <i class="fa-solid fa-city"></i> Construção Skyline Visual
+          <?php else: ?>
+            <i class="fa-solid fa-calculator"></i> Calculadora + Combos Rápidos
+          <?php endif; ?>
+        </span>
       </div>
     </article>
     <?php endforeach; ?>

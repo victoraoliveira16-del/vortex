@@ -1,206 +1,406 @@
--- =============================================================================
--- PROJETO: MathPlay Solutions - Plataforma Educacional Gamificada
--- ARQUIVO: database/mathplay.sql
--- BANCO DE DADOS: MySQL / MariaDB (XAMPP / phpMyAdmin)
--- =============================================================================
+-- MathPlay Solutions — Banco de Dados Completo
+-- Gerado em: 2026-09-09 12:53:13
 
-CREATE DATABASE IF NOT EXISTS `mathplay` 
-  DEFAULT CHARACTER SET utf8mb4 
-  COLLATE utf8mb4_unicode_ci;
-
+CREATE DATABASE IF NOT EXISTS `mathplay` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE `mathplay`;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
--- -----------------------------------------------------------------------------
--- 1. TABELA: users (Alunos e Professores)
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `users` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `name` VARCHAR(100) NOT NULL,
-  `email` VARCHAR(150) NOT NULL UNIQUE,
-  `password_hash` VARCHAR(255) NOT NULL,
-  `role` ENUM('student', 'teacher') NOT NULL DEFAULT 'student',
-  `avatar_color` VARCHAR(7) DEFAULT '#4F46E5',
-  `level` INT NOT NULL DEFAULT 1,
-  `xp` INT NOT NULL DEFAULT 0,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+DROP TABLE IF EXISTS `games`;
+CREATE TABLE `games` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `slug` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `topic` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `slug` (`slug`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO `games` (`id`, `slug`, `name`, `topic`, `description`) VALUES
+('1', 'fractions', 'Chef das Fracoes', 'Fracoes e Razoes', 'Monte receitas incriveis dividindo ingredientes na proporcao certa! Domine fracoes enquanto cozinha pratos deliciosos.'),
+('2', 'geometry', 'Construtor de Cidades', 'Geometria Plana', 'Construa sua propria metropole calculando areas e perimetros! Cada edificio precisa do espaco certo para ser erguido.'),
+('3', 'mental-math', 'Calculadora Mental', 'Operacoes Basicas', 'Resolva calculos das quatro operacoes contra o relogio e aumente seu combo a cada acerto.');
+
+DROP TABLE IF EXISTS `users`;
+CREATE TABLE `users` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `email` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `password_hash` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `role` enum('student','teacher') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'student',
+  `profile_photo` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `level` int NOT NULL DEFAULT '1',
+  `xp` int NOT NULL DEFAULT '0',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `avatar_color` varchar(7) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '#4F46E5',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `email` (`email`)
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO `users` (`id`, `name`, `email`, `password_hash`, `role`, `profile_photo`, `level`, `xp`, `created_at`, `avatar_color`) VALUES
+('1', 'Professor Carlos Silva', 'professor@mathplay.com', '$2y$10$UDlYYHIPlJSfakHebjbY5eddsb1otjl00StsWnbHr1ddr4Bt7DTqG', 'teacher', NULL, '5', '520', '2026-09-02 16:33:25', '#4F46E5'),
+('2', 'Lucas Santos', 'aluno@mathplay.com', '$2y$10$Cx.x1woy4ECbzqwYBJVCU.o3HujHRE5m0SzGpLmG7Feytzo6ZIWhq', 'student', NULL, '2', '180', '2026-09-02 16:33:25', '#4F46E5'),
+('3', 'Mariana Oliveira', 'mariana@mathplay.com', '$2y$10$Cx.x1woy4ECbzqwYBJVCU.o3HujHRE5m0SzGpLmG7Feytzo6ZIWhq', 'student', NULL, '3', '290', '2026-09-02 16:33:25', '#4F46E5'),
+('4', 'Victor Antônio de Oliveira', 'victor.a.oliveira16@aluno.senai.br', '$2y$10$l/8R/WGEhvaVFh11mXMtEuPaXvkXVf0U7eTCZ7uPA9.vysmypQgCi', 'student', NULL, '1', '0', '2026-09-02 16:38:26', '#4F46E5'),
+('5', 'Giandra Karoline Ferreira dos Santos', 'giandra.santos@aluno.senai.br', '$2y$10$mE7jQ.njBEUA0iwWEYykLOj3U8ktO584EI0XF83oujDYxZeOczEuq', 'student', NULL, '1', '40', '2026-09-04 08:27:06', '#DB2777');
+
+DROP TABLE IF EXISTS `achievements`;
+CREATE TABLE `achievements` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `icon` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'fa-trophy',
+  `condition_type` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `condition_value` int NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO `achievements` (`id`, `name`, `description`, `icon`, `condition_type`, `condition_value`) VALUES
+('1', 'Primeiro Passo', 'Complete sua primeira partida na plataforma', 'fa-gamepad', 'games_played', '1'),
+('2', 'Dedicado', 'Jogue 5 partidas no sistema', 'fa-calendar', 'games_played', '5'),
+('3', 'Cem Pontos!', 'Alcance a marca de 100 XP acumulados', 'fa-bolt', 'xp_total', '100'),
+('4', 'Mestre do XP', 'Alcance 500 XP acumulados no perfil', 'fa-award', 'xp_total', '500'),
+('5', 'Estrela em Ascensao', 'Alcance o nivel 3 de maestria', 'fa-star', 'level', '3'),
+('6', 'Lendario', 'Alcance o nivel 5 de maestria', 'fa-crown', 'level', '5');
+
+DROP TABLE IF EXISTS `user_achievements`;
+CREATE TABLE `user_achievements` (
+  `user_id` int NOT NULL,
+  `achievement_id` int NOT NULL,
+  `unlocked_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`user_id`,`achievement_id`),
+  KEY `fk_uach_ach` (`achievement_id`),
+  CONSTRAINT `fk_uach_ach` FOREIGN KEY (`achievement_id`) REFERENCES `achievements` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_uach_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- -----------------------------------------------------------------------------
--- 2. TABELA: games (Catalogo de Jogos)
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `games` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `slug` VARCHAR(50) NOT NULL UNIQUE,
-  `name` VARCHAR(100) NOT NULL,
-  `topic` VARCHAR(100) NOT NULL,
-  `description` TEXT,
-  `color_start` VARCHAR(7) DEFAULT '#4F46E5',
-  `color_end` VARCHAR(7) DEFAULT '#7C3AED'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+INSERT INTO `user_achievements` (`user_id`, `achievement_id`, `unlocked_at`) VALUES
+('2', '1', '2026-09-02 16:33:36'),
+('2', '3', '2026-09-02 16:33:36'),
+('3', '1', '2026-09-02 16:33:36'),
+('3', '3', '2026-09-02 16:33:36'),
+('3', '5', '2026-09-02 16:33:36'),
+('5', '1', '2026-09-04 08:42:28');
 
--- -----------------------------------------------------------------------------
--- 3. TABELA: game_sessions (Historico de Partidas e Desempenho)
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `game_sessions` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `user_id` INT NOT NULL,
-  `game_id` INT NOT NULL,
-  `score` INT NOT NULL DEFAULT 0,
-  `correct_answers` INT NOT NULL DEFAULT 0,
-  `wrong_answers` INT NOT NULL DEFAULT 0,
-  `time_spent` INT NOT NULL DEFAULT 0,
-  `difficulty` VARCHAR(20) DEFAULT 'easy',
-  `played_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT `fk_session_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_session_game` FOREIGN KEY (`game_id`) REFERENCES `games` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- -----------------------------------------------------------------------------
--- 4. TABELA: achievements (Conquistas / Medalhas do Sistema)
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `achievements` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `name` VARCHAR(100) NOT NULL,
-  `description` VARCHAR(255) NOT NULL,
-  `icon` VARCHAR(50) DEFAULT 'fa-trophy',
-  `condition_type` VARCHAR(50) NOT NULL,
-  `condition_value` INT NOT NULL DEFAULT 0,
-  `color` VARCHAR(7) DEFAULT '#F59E0B'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- -----------------------------------------------------------------------------
--- 5. TABELA: user_achievements (Conquistas Desbloqueadas pelos Usuarios)
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `user_achievements` (
-  `user_id` INT NOT NULL,
-  `achievement_id` INT NOT NULL,
-  `unlocked_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`user_id`, `achievement_id`),
-  CONSTRAINT `fk_uach_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_uach_ach` FOREIGN KEY (`achievement_id`) REFERENCES `achievements` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- -----------------------------------------------------------------------------
--- 6. TABELA: questions (Banco de Questoes Matematicas)
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `questions` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `game_id` INT,
-  `topic` VARCHAR(100) NOT NULL,
-  `question_text` TEXT NOT NULL,
-  `option_a` VARCHAR(255) NOT NULL,
-  `option_b` VARCHAR(255) NOT NULL,
-  `option_c` VARCHAR(255) NOT NULL,
-  `option_d` VARCHAR(255) NOT NULL,
-  `correct_answer` CHAR(1) NOT NULL,
-  `explanation` TEXT,
-  `difficulty` ENUM('easy', 'medium', 'hard') DEFAULT 'easy',
-  `is_ai_generated` TINYINT(1) DEFAULT 0,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT `fk_question_game` FOREIGN KEY (`game_id`) REFERENCES `games` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- -----------------------------------------------------------------------------
--- 7. TABELA: learning_trail (Trilha e Progresso por Topico)
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `learning_trail` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `user_id` INT NOT NULL,
-  `topic` VARCHAR(100) NOT NULL,
-  `progress_pct` INT NOT NULL DEFAULT 0,
-  `current_level` ENUM('easy', 'medium', 'hard') DEFAULT 'easy',
-  UNIQUE KEY `uniq_user_topic` (`user_id`, `topic`),
+DROP TABLE IF EXISTS `learning_trail`;
+CREATE TABLE `learning_trail` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `topic` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `progress_pct` int NOT NULL DEFAULT '0',
+  `current_level` enum('easy','medium','hard') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'easy',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_user_topic` (`user_id`,`topic`),
   CONSTRAINT `fk_trail_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- -----------------------------------------------------------------------------
--- 8. TABELA: notifications (Alertas Pedagogicos e Notificacoes)
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `notifications` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `user_id` INT NOT NULL,
-  `type` VARCHAR(50) DEFAULT 'info',
-  `title` VARCHAR(150) NOT NULL,
-  `message` TEXT NOT NULL,
-  `is_read` TINYINT(1) DEFAULT 0,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+INSERT INTO `learning_trail` (`id`, `user_id`, `topic`, `progress_pct`, `current_level`) VALUES
+('1', '2', 'Fracoes e Razoes', '88', 'easy'),
+('2', '2', 'Geometria Plana', '75', 'easy'),
+('3', '3', 'Fracoes e Razoes', '100', 'medium'),
+('4', '3', 'Geometria Plana', '100', 'medium'),
+('5', '5', 'Operacoes Basicas', '72', 'easy');
+
+DROP TABLE IF EXISTS `notifications`;
+CREATE TABLE `notifications` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `type` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'info',
+  `title` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `message` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `is_read` tinyint(1) DEFAULT '0',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `fk_notif_user` (`user_id`),
   CONSTRAINT `fk_notif_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO `notifications` (`id`, `user_id`, `type`, `title`, `message`, `is_read`, `created_at`) VALUES
+('1', '2', 'achievement', 'Conquista Desbloqueada!', 'Voce desbloqueou: Primeiro Passo - Complete sua primeira partida na plataforma', '1', '2026-09-02 16:34:01'),
+('2', '2', 'achievement', 'Conquista Desbloqueada!', 'Voce desbloqueou: Cem Pontos! - Alcance a marca de 100 XP acumulados', '1', '2026-09-02 16:34:01'),
+('3', '1', 'alert', 'Alerta Pedagogico', 'Turma do 7° ano com bom desempenho inicial em Fracoes e Razoes.', '1', '2026-09-02 16:34:01'),
+('4', '5', 'achievement', 'Conquista Desbloqueada!', 'Você desbloqueou: Primeiro Passo — Complete sua primeira partida na plataforma', '1', '2026-09-04 08:42:28'),
+('5', '1', 'ai', 'Reforco Personalizado Disponivel', 'Geradas 3 questoes de reforco sobre Fracoes e Razoes com foco pedagogico!', '1', '2026-09-04 14:42:27');
+
+DROP TABLE IF EXISTS `questions`;
+CREATE TABLE `questions` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `game_id` int DEFAULT NULL,
+  `topic` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `question_text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `option_a` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `option_b` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `option_c` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `option_d` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `correct_answer` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `explanation` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `difficulty` enum('easy','medium','hard') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'easy',
+  `is_ai_generated` tinyint(1) DEFAULT '0',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `fk_question_game` (`game_id`),
+  CONSTRAINT `fk_question_game` FOREIGN KEY (`game_id`) REFERENCES `games` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB AUTO_INCREMENT=234 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO `questions` (`id`, `game_id`, `topic`, `question_text`, `option_a`, `option_b`, `option_c`, `option_d`, `correct_answer`, `explanation`, `difficulty`, `is_ai_generated`, `created_at`) VALUES
+('1', '1', 'Fracoes e Razoes', 'A receita pede 1/2 xicara de farinha. Para fazer o dobro da receita, quanto voce precisa?', '1/2 xicara', '1 xicara inteira', '2 xicaras', '1/4 de xicara', 'B', '1/2 multiplicado por 2 = 2/2 = 1 xicara inteira!', 'easy', '0', '2026-09-02 16:33:46'),
+('2', '1', 'Fracoes e Razoes', 'Uma pizza foi cortada em 8 pedacos iguais. Joao comeu 3 pedacos. Que fracao da pizza ele comeu?', '1/4 da pizza', '3/5 da pizza', '3/8 da pizza', '5/8 da pizza', 'C', 'Joao consumiu 3 de um total de 8 partes, o que representa 3/8 da pizza.', 'easy', '0', '2026-09-02 16:33:46'),
+('3', '1', 'Fracoes e Razoes', 'Qual e a metade exata da fracao 3/4?', '3/2', '1/4', '3/8', '6/4', 'C', 'Calcular a metade equivale a dividir por 2: (3/4) / 2 = 3/8.', 'easy', '0', '2026-09-02 16:33:46'),
+('4', '1', 'Fracoes e Razoes', 'Uma receita usa 2/3 de copo de leite. Qual fracao do copo restou?', '1/3 de copo', '2/3 de copo', '1/2 de copo', '3/3 de copo', 'A', 'O copo inteiro representa 3/3. Subtraindo a parte usada: 3/3 - 2/3 = 1/3.', 'easy', '0', '2026-09-02 16:33:46'),
+('5', '1', 'Fracoes e Razoes', 'Qual e o resultado da soma de 1/4 + 1/4?', '2/8', '1/2', '1/8', '3/4', 'B', '1/4 + 1/4 = 2/4. Simplificando a fracao por 2, obtemos 1/2.', 'easy', '0', '2026-09-02 16:33:46'),
+('6', '1', 'Fracoes e Razoes', 'Uma jarra contem 3/4 de suco. Voce bebe 1/4. Quanto resta na jarra?', '1/2 da jarra', '1/4 da jarra', '3/4 da jarra', '2/8 da jarra', 'A', '3/4 - 1/4 = 2/4 = 1/2 da jarra de suco.', 'medium', '0', '2026-09-02 16:33:46'),
+('7', '1', 'Fracoes e Razoes', 'Se 1/3 de uma receita demanda 6 ovos, quantos ovos serao necessarios para a receita completa?', '3 ovos', '9 ovos', '18 ovos', '12 ovos', 'C', 'Se 1/3 corresponde a 6 ovos, o total (3/3) e obtido por 6 x 3 = 18 ovos.', 'medium', '0', '2026-09-02 16:33:46'),
+('8', '1', 'Fracoes e Razoes', 'Qual das fracoes abaixo e equivalente a 2/3?', '4/9', '4/6', '3/4', '6/4', 'B', '2/3 = 4/6 multiplicando numerador e denominador pelo fator 2.', 'medium', '0', '2026-09-02 16:33:46'),
+('9', '2', 'Geometria Plana', 'Um terreno retangular tem 5m de largura e 8m de comprimento. Qual e a sua area total?', '26 m2', '40 m2', '13 m2', '20 m2', 'B', 'A area do retangulo e calculada por base x altura: 5 x 8 = 40 m2.', 'easy', '0', '2026-09-02 16:33:50'),
+('10', '2', 'Geometria Plana', 'Uma praca quadrada possui lado de 6m. Qual e o seu perimetro total?', '12 metros', '36 metros', '24 metros', '18 metros', 'C', 'O perimetro do quadrado e dado por 4 x lado: 4 x 6 = 24 metros.', 'easy', '0', '2026-09-02 16:33:50'),
+('11', '2', 'Geometria Plana', 'Para cercar um jardim retangular de 4m por 3m, quantos metros de cerca sao necessarios?', '7 metros', '12 metros', '14 metros', '24 metros', 'C', 'Perimetro = 2 x (4 + 3) = 2 x 7 = 14 metros de cerca.', 'easy', '0', '2026-09-02 16:33:50'),
+('12', '2', 'Geometria Plana', 'Um apartamento quadrado possui area de 25m2. Qual e a medida de cada lado?', '6 metros', '5 metros', '4 metros', '7 metros', 'B', 'A area do quadrado e lado ao quadrado (L^2). Raiz quadrada de 25 = 5 metros.', 'easy', '0', '2026-09-02 16:33:50'),
+('13', '2', 'Geometria Plana', 'Uma sala retangular mede 10m por 4m. Quantas placas de piso de 1m2 sao necessarias para cobrir o chao?', '28 placas', '14 placas', '40 placas', '20 placas', 'C', 'Area total da sala = 10 x 4 = 40 m2. Logo, sao necessarias 40 placas de 1m2.', 'medium', '0', '2026-09-02 16:33:50'),
+('14', '2', 'Geometria Plana', 'Um parque triangular possui base de 8m e altura de 5m. Qual e a sua area?', '40 m2', '13 m2', '20 m2', '26 m2', 'C', 'Area do triangulo = (base x altura) / 2 = (8 x 5) / 2 = 40 / 2 = 20 m2.', 'medium', '0', '2026-09-02 16:33:50'),
+('15', '2', 'Geometria Plana', 'Uma praca circular tem raio de 3m. Qual e a area aproximada? (Considere pi = 3)', '9 m2', '18 m2', '27 m2', '6 m2', 'C', 'Area do circulo = pi x r^2 = 3 x (3^2) = 3 x 9 = 27 m2.', 'medium', '0', '2026-09-02 16:33:50'),
+('16', '2', 'Geometria Plana', 'Um terreno em L e composto por um retangulo 10x6 do qual retirou-se um recorte 4x3. Qual e a area util restante?', '48 m2', '60 m2', '72 m2', '52 m2', 'A', 'Area total inicial: 10 x 6 = 60. Area recortada: 4 x 3 = 12. Area util restante: 60 - 12 = 48 m2.', 'hard', '0', '2026-09-02 16:33:50'),
+('17', '3', 'Operacoes Basicas', '10 ÷ 2', '', '', '', '', '5', 'Resolva a operacao da esquerda para a direita: 10 ÷ 2 = 5.', 'easy', '0', '2026-09-02 16:38:41'),
+('18', '3', 'Operacoes Basicas', '12 ÷ 2', '', '', '', '', '6', 'Resolva a operacao da esquerda para a direita: 12 ÷ 2 = 6.', 'easy', '0', '2026-09-02 16:38:41'),
+('19', '3', 'Operacoes Basicas', '8 × 8', '', '', '', '', '64', 'Resolva a operacao da esquerda para a direita: 8 × 8 = 64.', 'easy', '0', '2026-09-02 16:38:41'),
+('20', '3', 'Operacoes Basicas', '12 - 10', '', '', '', '', '2', 'Resolva a operacao da esquerda para a direita: 12 - 10 = 2.', 'easy', '0', '2026-09-02 16:38:41'),
+('21', '3', 'Operacoes Basicas', '19 + 6', '', '', '', '', '25', 'Resolva a operacao da esquerda para a direita: 19 + 6 = 25.', 'easy', '0', '2026-09-02 16:38:41'),
+('22', '3', 'Operacoes Basicas', '18 - 9', '', '', '', '', '9', 'Resolva a operacao da esquerda para a direita: 18 - 9 = 9.', 'easy', '0', '2026-09-02 16:38:41'),
+('23', '3', 'Operacoes Basicas', '18 ÷ 2', '', '', '', '', '9', 'Resolva a operacao da esquerda para a direita: 18 ÷ 2 = 9.', 'easy', '0', '2026-09-02 16:38:41'),
+('24', '3', 'Operacoes Basicas', '23 - 12', '', '', '', '', '11', 'Resolva a operacao da esquerda para a direita: 23 - 12 = 11.', 'easy', '0', '2026-09-02 16:38:41'),
+('25', '3', 'Operacoes Basicas', '28 + 3', '', '', '', '', '31', 'Resolva a operacao da esquerda para a direita: 28 + 3 = 31.', 'easy', '0', '2026-09-02 16:38:41'),
+('26', '3', 'Operacoes Basicas', '23 + 8', '', '', '', '', '31', 'Resolva a operacao da esquerda para a direita: 23 + 8 = 31.', 'easy', '0', '2026-09-02 16:38:41'),
+('27', '3', 'Operacoes Basicas', '22 + 10', '', '', '', '', '32', 'Resolva a operacao da esquerda para a direita: 22 + 10 = 32.', 'easy', '0', '2026-09-02 16:38:48'),
+('28', '3', 'Operacoes Basicas', '21 - 12', '', '', '', '', '9', 'Resolva a operacao da esquerda para a direita: 21 - 12 = 9.', 'easy', '0', '2026-09-02 16:38:50'),
+('29', '3', 'Operacoes Basicas', '23 + 5', '', '', '', '', '28', 'Resolva a operacao da esquerda para a direita: 23 + 5 = 28.', 'easy', '0', '2026-09-02 16:38:53'),
+('30', '3', 'Operacoes Basicas', '15 + 2', '', '', '', '', '17', 'Resolva a operacao da esquerda para a direita: 15 + 2 = 17.', 'easy', '0', '2026-09-02 16:38:55'),
+('31', '3', 'Operacoes Basicas', '14 × 6', '', '', '', '', '84', 'Resolva a operacao da esquerda para a direita: 14 × 6 = 84.', 'easy', '0', '2026-09-02 16:38:58'),
+('32', '3', 'Operacoes Basicas', '24 - 9', '', '', '', '', '15', 'Resolva a operacao da esquerda para a direita: 24 - 9 = 15.', 'easy', '0', '2026-09-02 16:39:01'),
+('33', '3', 'Operacoes Basicas', '13 - 12', '', '', '', '', '1', 'Resolva a operacao da esquerda para a direita: 13 - 12 = 1.', 'easy', '0', '2026-09-02 16:39:03'),
+('34', '3', 'Operacoes Basicas', '12 - 12', '', '', '', '', '0', 'Resolva a operacao da esquerda para a direita: 12 - 12 = 0.', 'easy', '0', '2026-09-02 16:39:08'),
+('35', '3', 'Operacoes Basicas', '24 ÷ 3', '', '', '', '', '8', 'Resolva a operacao da esquerda para a direita: 24 ÷ 3 = 8.', 'easy', '0', '2026-09-02 16:39:11'),
+('36', '3', 'Operacoes Basicas', '72 ÷ 9', '', '', '', '', '8', 'Resolva a operacao da esquerda para a direita: 72 ÷ 9 = 8.', 'easy', '0', '2026-09-04 08:30:16'),
+('37', '3', 'Operacoes Basicas', '21 ÷ 7', '', '', '', '', '3', 'Resolva a operacao da esquerda para a direita: 21 ÷ 7 = 3.', 'easy', '0', '2026-09-04 08:30:16'),
+('38', '3', 'Operacoes Basicas', '11 - 8', '', '', '', '', '3', 'Resolva a operacao da esquerda para a direita: 11 - 8 = 3.', 'easy', '0', '2026-09-04 08:30:16'),
+('39', '3', 'Operacoes Basicas', '22 - 12', '', '', '', '', '10', 'Resolva a operacao da esquerda para a direita: 22 - 12 = 10.', 'easy', '0', '2026-09-04 08:30:16'),
+('40', '3', 'Operacoes Basicas', '22 × 11', '', '', '', '', '242', 'Resolva a operacao da esquerda para a direita: 22 × 11 = 242.', 'easy', '0', '2026-09-04 08:30:16'),
+('41', '3', 'Operacoes Basicas', '12 - 5', '', '', '', '', '7', 'Resolva a operacao da esquerda para a direita: 12 - 5 = 7.', 'easy', '0', '2026-09-04 08:30:16'),
+('42', '3', 'Operacoes Basicas', '17 + 3', '', '', '', '', '20', 'Resolva a operacao da esquerda para a direita: 17 + 3 = 20.', 'easy', '0', '2026-09-04 08:30:16'),
+('43', '3', 'Operacoes Basicas', '60 ÷ 12', '', '', '', '', '5', 'Resolva a operacao da esquerda para a direita: 60 ÷ 12 = 5.', 'easy', '0', '2026-09-04 08:30:16'),
+('44', '3', 'Operacoes Basicas', '26 × 9', '', '', '', '', '234', 'Resolva a operacao da esquerda para a direita: 26 × 9 = 234.', 'easy', '0', '2026-09-04 08:30:16'),
+('45', '3', 'Operacoes Basicas', '25 × 6', '', '', '', '', '150', 'Resolva a operacao da esquerda para a direita: 25 × 6 = 150.', 'easy', '0', '2026-09-04 08:30:16'),
+('46', '3', 'Operacoes Basicas', '4 × 9', '', '', '', '', '36', 'Resolva a operacao da esquerda para a direita: 4 × 9 = 36.', 'easy', '0', '2026-09-04 08:31:34'),
+('47', '3', 'Operacoes Basicas', '2 + 10', '', '', '', '', '12', 'Resolva a operacao da esquerda para a direita: 2 + 10 = 12.', 'easy', '0', '2026-09-04 08:31:34'),
+('48', '3', 'Operacoes Basicas', '11 + 3', '', '', '', '', '14', 'Resolva a operacao da esquerda para a direita: 11 + 3 = 14.', 'easy', '0', '2026-09-04 08:31:34'),
+('49', '3', 'Operacoes Basicas', '19 × 4', '', '', '', '', '76', 'Resolva a operacao da esquerda para a direita: 19 × 4 = 76.', 'easy', '0', '2026-09-04 08:31:34'),
+('50', '3', 'Operacoes Basicas', '9 + 4', '', '', '', '', '13', 'Resolva a operacao da esquerda para a direita: 9 + 4 = 13.', 'easy', '0', '2026-09-04 08:31:34'),
+('51', '3', 'Operacoes Basicas', '21 - 2', '', '', '', '', '19', 'Resolva a operacao da esquerda para a direita: 21 - 2 = 19.', 'easy', '0', '2026-09-04 08:31:34'),
+('52', '3', 'Operacoes Basicas', '17 - 9', '', '', '', '', '8', 'Resolva a operacao da esquerda para a direita: 17 - 9 = 8.', 'easy', '0', '2026-09-04 08:31:34'),
+('53', '3', 'Operacoes Basicas', '21 + 4', '', '', '', '', '25', 'Resolva a operacao da esquerda para a direita: 21 + 4 = 25.', 'easy', '0', '2026-09-04 08:31:34'),
+('54', '3', 'Operacoes Basicas', '15 + 6', '', '', '', '', '21', 'Resolva a operacao da esquerda para a direita: 15 + 6 = 21.', 'easy', '0', '2026-09-04 08:31:34'),
+('55', '3', 'Operacoes Basicas', '63 ÷ 7', '', '', '', '', '9', 'Resolva a operacao da esquerda para a direita: 63 ÷ 7 = 9.', 'easy', '0', '2026-09-04 08:31:34'),
+('56', '3', 'Operacoes Basicas', '3 × 3', '', '', '', '', '9', 'Resolva a operacao da esquerda para a direita: 3 × 3 = 9.', 'easy', '0', '2026-09-04 08:31:58'),
+('57', '3', 'Operacoes Basicas', '19 + 2', '', '', '', '', '21', 'Resolva a operacao da esquerda para a direita: 19 + 2 = 21.', 'easy', '0', '2026-09-04 08:31:58'),
+('58', '3', 'Operacoes Basicas', '4 × 9', '', '', '', '', '36', 'Resolva a operacao da esquerda para a direita: 4 × 9 = 36.', 'easy', '0', '2026-09-04 08:31:58'),
+('59', '3', 'Operacoes Basicas', '33 ÷ 11', '', '', '', '', '3', 'Resolva a operacao da esquerda para a direita: 33 ÷ 11 = 3.', 'easy', '0', '2026-09-04 08:31:58'),
+('60', '3', 'Operacoes Basicas', '25 + 10', '', '', '', '', '35', 'Resolva a operacao da esquerda para a direita: 25 + 10 = 35.', 'easy', '0', '2026-09-04 08:31:58'),
+('61', '3', 'Operacoes Basicas', '18 + 11', '', '', '', '', '29', 'Resolva a operacao da esquerda para a direita: 18 + 11 = 29.', 'easy', '0', '2026-09-04 08:31:58'),
+('62', '3', 'Operacoes Basicas', '23 × 10', '', '', '', '', '230', 'Resolva a operacao da esquerda para a direita: 23 × 10 = 230.', 'easy', '0', '2026-09-04 08:31:58'),
+('63', '3', 'Operacoes Basicas', '10 - 10', '', '', '', '', '0', 'Resolva a operacao da esquerda para a direita: 10 - 10 = 0.', 'easy', '0', '2026-09-04 08:31:58'),
+('64', '3', 'Operacoes Basicas', '3 × 5', '', '', '', '', '15', 'Resolva a operacao da esquerda para a direita: 3 × 5 = 15.', 'easy', '0', '2026-09-04 08:31:58'),
+('65', '3', 'Operacoes Basicas', '66 ÷ 11', '', '', '', '', '6', 'Resolva a operacao da esquerda para a direita: 66 ÷ 11 = 6.', 'easy', '0', '2026-09-04 08:31:58'),
+('66', '3', 'Operacoes Basicas', '6 ÷ 3', '', '', '', '', '2', 'Nível Fácil: 6 ÷ 3 = 2.', 'easy', '0', '2026-09-04 08:39:16'),
+('67', '3', 'Operacoes Basicas', '24 ÷ 3', '', '', '', '', '8', 'Nível Fácil: 24 ÷ 3 = 8.', 'easy', '0', '2026-09-04 08:39:16'),
+('68', '3', 'Operacoes Basicas', '4 ÷ 2', '', '', '', '', '2', 'Nível Fácil: 4 ÷ 2 = 2.', 'easy', '0', '2026-09-04 08:39:16'),
+('69', '3', 'Operacoes Basicas', '12 + 4', '', '', '', '', '16', 'Nível Fácil: 12 + 4 = 16.', 'easy', '0', '2026-09-04 08:39:16'),
+('70', '3', 'Operacoes Basicas', '13 - 3', '', '', '', '', '10', 'Nível Fácil: 13 - 3 = 10.', 'easy', '0', '2026-09-04 08:39:16'),
+('71', '3', 'Operacoes Basicas', '14 - 9', '', '', '', '', '5', 'Nível Fácil: 14 - 9 = 5.', 'easy', '0', '2026-09-04 08:39:16'),
+('72', '3', 'Operacoes Basicas', '8 ÷ 2', '', '', '', '', '4', 'Nível Fácil: 8 ÷ 2 = 4.', 'easy', '0', '2026-09-04 08:39:16'),
+('73', '3', 'Operacoes Basicas', '11 + 9', '', '', '', '', '20', 'Nível Fácil: 11 + 9 = 20.', 'easy', '0', '2026-09-04 08:39:16'),
+('74', '3', 'Operacoes Basicas', '10 + 10', '', '', '', '', '20', 'Nível Fácil: 10 + 10 = 20.', 'easy', '0', '2026-09-04 08:39:16'),
+('75', '3', 'Operacoes Basicas', '19 - 8', '', '', '', '', '11', 'Nível Fácil: 19 - 8 = 11.', 'easy', '0', '2026-09-04 08:39:17'),
+('76', '3', 'Operacoes Basicas', '20 - 10', '', '', '', '', '10', 'Nível Fácil: 20 - 10 = 10.', 'easy', '0', '2026-09-04 08:39:17'),
+('77', '3', 'Operacoes Basicas', '11 + 3', '', '', '', '', '14', 'Nível Fácil: 11 + 3 = 14.', 'easy', '0', '2026-09-04 08:39:17'),
+('78', '3', 'Operacoes Basicas', '12 - 2', '', '', '', '', '10', 'Nível Fácil: 12 - 2 = 10.', 'easy', '0', '2026-09-04 08:39:56'),
+('79', '3', 'Operacoes Basicas', '12 + 2', '', '', '', '', '14', 'Nível Fácil: 12 + 2 = 14.', 'easy', '0', '2026-09-04 08:39:56'),
+('80', '3', 'Operacoes Basicas', '11 - 6', '', '', '', '', '5', 'Nível Fácil: 11 - 6 = 5.', 'easy', '0', '2026-09-04 08:39:56'),
+('81', '3', 'Operacoes Basicas', '72 ÷ 8', '', '', '', '', '9', 'Nível Médio: 72 ÷ 8 = 9.', 'medium', '0', '2026-09-04 08:39:56'),
+('82', '3', 'Operacoes Basicas', '81 ÷ 9', '', '', '', '', '9', 'Nível Médio: 81 ÷ 9 = 9.', 'medium', '0', '2026-09-04 08:39:56'),
+('83', '3', 'Operacoes Basicas', '54 ÷ 6', '', '', '', '', '9', 'Nível Médio: 54 ÷ 6 = 9.', 'medium', '0', '2026-09-04 08:39:56'),
+('84', '3', 'Operacoes Basicas', '13 × 3', '', '', '', '', '39', 'Nível Difícil: 13 × 3 = 39.', 'hard', '0', '2026-09-04 08:39:56'),
+('85', '3', 'Operacoes Basicas', '124 - 46', '', '', '', '', '78', 'Nível Difícil: 124 - 46 = 78.', 'hard', '0', '2026-09-04 08:39:56'),
+('86', '3', 'Operacoes Basicas', '154 - 75', '', '', '', '', '79', 'Nível Difícil: 154 - 75 = 79.', 'hard', '0', '2026-09-04 08:39:56'),
+('87', '3', 'Operacoes Basicas', '200 - 85', '', '', '', '', '115', 'Desafio Mestre: 200 - 85 = 115.', 'hard', '0', '2026-09-04 08:39:56'),
+('88', '3', 'Operacoes Basicas', '16 × 5', '', '', '', '', '80', 'Desafio Mestre: 16 × 5 = 80.', 'hard', '0', '2026-09-04 08:39:56'),
+('89', '3', 'Operacoes Basicas', '99 + 88', '', '', '', '', '187', 'Desafio Mestre: 99 + 88 = 187.', 'hard', '0', '2026-09-04 08:39:56'),
+('90', '3', 'Operacoes Basicas', '4 + 9', '', '', '', '', '13', 'Nível Fácil: 4 + 9 = 13.', 'easy', '0', '2026-09-04 08:40:33'),
+('91', '3', 'Operacoes Basicas', '7 + 6', '', '', '', '', '13', 'Nível Fácil: 7 + 6 = 13.', 'easy', '0', '2026-09-04 08:40:33'),
+('92', '3', 'Operacoes Basicas', '4 × 8', '', '', '', '', '32', 'Nível Fácil: 4 × 8 = 32.', 'easy', '0', '2026-09-04 08:40:33'),
+('93', '3', 'Operacoes Basicas', '73 - 39', '', '', '', '', '34', 'Nível Médio: 73 - 39 = 34.', 'medium', '0', '2026-09-04 08:40:33'),
+('94', '3', 'Operacoes Basicas', '61 - 40', '', '', '', '', '21', 'Nível Médio: 61 - 40 = 21.', 'medium', '0', '2026-09-04 08:40:33'),
+('95', '3', 'Operacoes Basicas', '37 - 20', '', '', '', '', '17', 'Nível Médio: 37 - 20 = 17.', 'medium', '0', '2026-09-04 08:40:33'),
+('96', '3', 'Operacoes Basicas', '80 ÷ 5', '', '', '', '', '16', 'Nível Difícil: 80 ÷ 5 = 16.', 'hard', '0', '2026-09-04 08:40:33'),
+('97', '3', 'Operacoes Basicas', '90 - 36', '', '', '', '', '54', 'Nível Difícil: 90 - 36 = 54.', 'hard', '0', '2026-09-04 08:40:33'),
+('98', '3', 'Operacoes Basicas', '93 - 42', '', '', '', '', '51', 'Nível Difícil: 93 - 42 = 51.', 'hard', '0', '2026-09-04 08:40:33'),
+('99', '3', 'Operacoes Basicas', '16 × 5', '', '', '', '', '80', 'Desafio Mestre: 16 × 5 = 80.', 'hard', '0', '2026-09-04 08:40:33'),
+('100', '3', 'Operacoes Basicas', '11 - 7', '', '', '', '', '4', 'Nível Fácil: 11 - 7 = 4.', 'easy', '0', '2026-09-04 08:40:36'),
+('101', '3', 'Operacoes Basicas', '3 × 6', '', '', '', '', '18', 'Nível Fácil: 3 × 6 = 18.', 'easy', '0', '2026-09-04 08:40:36'),
+('102', '3', 'Operacoes Basicas', '12 - 6', '', '', '', '', '6', 'Nível Fácil: 12 - 6 = 6.', 'easy', '0', '2026-09-04 08:40:36'),
+('103', '3', 'Operacoes Basicas', '6 × 7', '', '', '', '', '42', 'Nível Médio: 6 × 7 = 42.', 'medium', '0', '2026-09-04 08:40:36'),
+('104', '3', 'Operacoes Basicas', '9 × 7', '', '', '', '', '63', 'Nível Médio: 9 × 7 = 63.', 'medium', '0', '2026-09-04 08:40:36'),
+('105', '3', 'Operacoes Basicas', '25 + 15', '', '', '', '', '40', 'Nível Médio: 25 + 15 = 40.', 'medium', '0', '2026-09-04 08:40:36'),
+('106', '3', 'Operacoes Basicas', '108 - 45', '', '', '', '', '63', 'Nível Difícil: 108 - 45 = 63.', 'hard', '0', '2026-09-04 08:40:36'),
+('107', '3', 'Operacoes Basicas', '80 ÷ 5', '', '', '', '', '16', 'Nível Difícil: 80 ÷ 5 = 16.', 'hard', '0', '2026-09-04 08:40:36'),
+('108', '3', 'Operacoes Basicas', '123 - 60', '', '', '', '', '63', 'Nível Difícil: 123 - 60 = 63.', 'hard', '0', '2026-09-04 08:40:36'),
+('109', '3', 'Operacoes Basicas', '144 ÷ 12', '', '', '', '', '12', 'Desafio Mestre: 144 ÷ 12 = 12.', 'hard', '0', '2026-09-04 08:40:36'),
+('110', '3', 'Operacoes Basicas', '11 + 3', '', '', '', '', '14', 'Nível Fácil: 11 + 3 = 14.', 'easy', '0', '2026-09-04 08:40:46'),
+('111', '3', 'Operacoes Basicas', '18 ÷ 3', '', '', '', '', '6', 'Nível Fácil: 18 ÷ 3 = 6.', 'easy', '0', '2026-09-04 08:40:46'),
+('112', '3', 'Operacoes Basicas', '8 + 5', '', '', '', '', '13', 'Nível Fácil: 8 + 5 = 13.', 'easy', '0', '2026-09-04 08:40:46'),
+('113', '3', 'Operacoes Basicas', '33 + 30', '', '', '', '', '63', 'Nível Médio: 33 + 30 = 63.', 'medium', '0', '2026-09-04 08:40:46'),
+('114', '3', 'Operacoes Basicas', '7 × 4', '', '', '', '', '28', 'Nível Médio: 7 × 4 = 28.', 'medium', '0', '2026-09-04 08:40:46'),
+('115', '3', 'Operacoes Basicas', '28 + 13', '', '', '', '', '41', 'Nível Médio: 28 + 13 = 41.', 'medium', '0', '2026-09-04 08:40:46'),
+('116', '3', 'Operacoes Basicas', '116 - 71', '', '', '', '', '45', 'Nível Difícil: 116 - 71 = 45.', 'hard', '0', '2026-09-04 08:40:46'),
+('117', '3', 'Operacoes Basicas', '96 ÷ 3', '', '', '', '', '32', 'Nível Difícil: 96 ÷ 3 = 32.', 'hard', '0', '2026-09-04 08:40:46'),
+('118', '3', 'Operacoes Basicas', '84 ÷ 4', '', '', '', '', '21', 'Nível Difícil: 84 ÷ 4 = 21.', 'hard', '0', '2026-09-04 08:40:46'),
+('119', '3', 'Operacoes Basicas', '99 + 88', '', '', '', '', '187', 'Desafio Mestre: 99 + 88 = 187.', 'hard', '0', '2026-09-04 08:40:46'),
+('120', '3', 'Operacoes Basicas', '5 + 6', '', '', '', '', '11', 'Nível Fácil: 5 + 6 = 11.', 'easy', '0', '2026-09-04 08:40:50'),
+('121', '3', 'Operacoes Basicas', '14 - 4', '', '', '', '', '10', 'Nível Fácil: 14 - 4 = 10.', 'easy', '0', '2026-09-04 08:40:50'),
+('122', '3', 'Operacoes Basicas', '12 + 8', '', '', '', '', '20', 'Nível Fácil: 12 + 8 = 20.', 'easy', '0', '2026-09-04 08:40:50'),
+('123', '3', 'Operacoes Basicas', '20 + 32', '', '', '', '', '52', 'Nível Médio: 20 + 32 = 52.', 'medium', '0', '2026-09-04 08:40:50'),
+('124', '3', 'Operacoes Basicas', '64 - 34', '', '', '', '', '30', 'Nível Médio: 64 - 34 = 30.', 'medium', '0', '2026-09-04 08:40:50'),
+('125', '3', 'Operacoes Basicas', '6 × 7', '', '', '', '', '42', 'Nível Médio: 6 × 7 = 42.', 'medium', '0', '2026-09-04 08:40:50'),
+('126', '3', 'Operacoes Basicas', '69 + 47', '', '', '', '', '116', 'Nível Difícil: 69 + 47 = 116.', 'hard', '0', '2026-09-04 08:40:50'),
+('127', '3', 'Operacoes Basicas', '112 - 61', '', '', '', '', '51', 'Nível Difícil: 112 - 61 = 51.', 'hard', '0', '2026-09-04 08:40:50'),
+('128', '3', 'Operacoes Basicas', '78 + 71', '', '', '', '', '149', 'Nível Difícil: 78 + 71 = 149.', 'hard', '0', '2026-09-04 08:40:50'),
+('129', '3', 'Operacoes Basicas', '50 × 4', '', '', '', '', '200', 'Desafio Mestre: 50 × 4 = 200.', 'hard', '0', '2026-09-04 08:40:50'),
+('130', '3', 'Operacoes Basicas', '3 × 4', '', '', '', '', '12', 'Nível Fácil: 3 × 4 = 12.', 'easy', '0', '2026-09-04 08:41:17'),
+('131', '3', 'Operacoes Basicas', '12 - 2', '', '', '', '', '10', 'Nível Fácil: 12 - 2 = 10.', 'easy', '0', '2026-09-04 08:41:17'),
+('132', '3', 'Operacoes Basicas', '6 ÷ 3', '', '', '', '', '2', 'Nível Fácil: 6 ÷ 3 = 2.', 'easy', '0', '2026-09-04 08:41:17'),
+('133', '3', 'Operacoes Basicas', '27 + 14', '', '', '', '', '41', 'Nível Médio: 27 + 14 = 41.', 'medium', '0', '2026-09-04 08:41:17'),
+('134', '3', 'Operacoes Basicas', '32 ÷ 8', '', '', '', '', '4', 'Nível Médio: 32 ÷ 8 = 4.', 'medium', '0', '2026-09-04 08:41:17'),
+('135', '3', 'Operacoes Basicas', '45 + 15', '', '', '', '', '60', 'Nível Médio: 45 + 15 = 60.', 'medium', '0', '2026-09-04 08:41:17'),
+('136', '3', 'Operacoes Basicas', '96 ÷ 3', '', '', '', '', '32', 'Nível Difícil: 96 ÷ 3 = 32.', 'hard', '0', '2026-09-04 08:41:17'),
+('137', '3', 'Operacoes Basicas', '12 × 6', '', '', '', '', '72', 'Nível Difícil: 12 × 6 = 72.', 'hard', '0', '2026-09-04 08:41:17'),
+('138', '3', 'Operacoes Basicas', '73 + 37', '', '', '', '', '110', 'Nível Difícil: 73 + 37 = 110.', 'hard', '0', '2026-09-04 08:41:17'),
+('139', '3', 'Operacoes Basicas', '25 × 4', '', '', '', '', '100', 'Desafio Mestre: 25 × 4 = 100.', 'hard', '0', '2026-09-04 08:41:17'),
+('140', '3', 'Operacoes Basicas', '12 - 2', '', '', '', '', '10', 'Nível Fácil: 12 - 2 = 10.', 'easy', '0', '2026-09-04 08:48:09'),
+('141', '3', 'Operacoes Basicas', '13 - 2', '', '', '', '', '11', 'Nível Fácil: 13 - 2 = 11.', 'easy', '0', '2026-09-04 08:48:09'),
+('142', '3', 'Operacoes Basicas', '4 + 12', '', '', '', '', '16', 'Nível Fácil: 4 + 12 = 16.', 'easy', '0', '2026-09-04 08:48:09'),
+('143', '3', 'Operacoes Basicas', '63 ÷ 9', '', '', '', '', '7', 'Nível Médio: 63 ÷ 9 = 7.', 'medium', '0', '2026-09-04 08:48:09'),
+('144', '3', 'Operacoes Basicas', '22 + 22', '', '', '', '', '44', 'Nível Médio: 22 + 22 = 44.', 'medium', '0', '2026-09-04 08:48:09'),
+('145', '3', 'Operacoes Basicas', '8 × 9', '', '', '', '', '72', 'Nível Médio: 8 × 9 = 72.', 'medium', '0', '2026-09-04 08:48:09'),
+('146', '3', 'Operacoes Basicas', '113 - 47', '', '', '', '', '66', 'Nível Difícil: 113 - 47 = 66.', 'hard', '0', '2026-09-04 08:48:09'),
+('147', '3', 'Operacoes Basicas', '74 + 42', '', '', '', '', '116', 'Nível Difícil: 74 + 42 = 116.', 'hard', '0', '2026-09-04 08:48:09'),
+('148', '3', 'Operacoes Basicas', '148 - 75', '', '', '', '', '73', 'Nível Difícil: 148 - 75 = 73.', 'hard', '0', '2026-09-04 08:48:09'),
+('149', '3', 'Operacoes Basicas', '249 - 95', '', '', '', '', '154', 'Nível Especialista: 249 - 95 = 154.', 'hard', '0', '2026-09-04 08:48:09'),
+('150', '3', 'Operacoes Basicas', '266 - 124', '', '', '', '', '142', 'Nível Especialista: 266 - 124 = 142.', 'hard', '0', '2026-09-04 08:48:09'),
+('151', '3', 'Operacoes Basicas', '168 + 119', '', '', '', '', '287', 'Nível Especialista: 168 + 119 = 287.', 'hard', '0', '2026-09-04 08:48:09'),
+('152', '3', 'Operacoes Basicas', '14 + 8', '', '', '', '', '22', 'Nível Fácil: 14 + 8 = 22.', 'easy', '0', '2026-09-04 08:48:39'),
+('153', '3', 'Operacoes Basicas', '4 ÷ 2', '', '', '', '', '2', 'Nível Fácil: 4 ÷ 2 = 2.', 'easy', '0', '2026-09-04 08:48:39'),
+('154', '3', 'Operacoes Basicas', '69 - 35', '', '', '', '', '34', 'Nível Médio: 69 - 35 = 34.', 'medium', '0', '2026-09-04 08:48:39'),
+('155', '3', 'Operacoes Basicas', '37 + 35', '', '', '', '', '72', 'Nível Médio: 37 + 35 = 72.', 'medium', '0', '2026-09-04 08:48:39'),
+('156', '3', 'Operacoes Basicas', '12 × 4', '', '', '', '', '48', 'Nível Difícil: 12 × 4 = 48.', 'hard', '0', '2026-09-04 08:48:39'),
+('157', '3', 'Operacoes Basicas', '98 - 51', '', '', '', '', '47', 'Nível Difícil: 98 - 51 = 47.', 'hard', '0', '2026-09-04 08:48:39'),
+('158', '3', 'Operacoes Basicas', '211 - 133', '', '', '', '', '78', 'Nível Especialista: 211 - 133 = 78.', 'hard', '0', '2026-09-04 08:48:39'),
+('159', '3', 'Operacoes Basicas', '95 + 58', '', '', '', '', '153', 'Nível Especialista: 95 + 58 = 153.', 'hard', '0', '2026-09-04 08:48:39'),
+('160', '3', 'Operacoes Basicas', '11 × 15', '', '', '', '', '165', 'Nível Mestre: 11 × 15 = 165.', 'hard', '0', '2026-09-04 08:48:39'),
+('161', '3', 'Operacoes Basicas', '506 - 212', '', '', '', '', '294', 'Nível Mestre: 506 - 212 = 294.', 'hard', '0', '2026-09-04 08:48:39'),
+('162', '3', 'Operacoes Basicas', '15 × 15', '', '', '', '', '225', 'Nível Lenda: 15 × 15 = 225.', 'hard', '0', '2026-09-04 08:48:39'),
+('163', '3', 'Operacoes Basicas', '327 + 452', '', '', '', '', '779', 'Nível Lenda: 327 + 452 = 779.', 'hard', '0', '2026-09-04 08:48:39'),
+('164', '3', 'Operacoes Basicas', '50 × 8', '', '', '', '', '400', 'Nível Lenda: 50 × 8 = 400.', 'hard', '0', '2026-09-04 08:48:39'),
+('165', '3', 'Operacoes Basicas', '125 × 2', '', '', '', '', '250', 'Nível Lenda: 125 × 2 = 250.', 'hard', '0', '2026-09-04 08:48:39'),
+('166', '3', 'Operacoes Basicas', '80 × 5', '', '', '', '', '400', 'Nível Lenda: 80 × 5 = 400.', 'hard', '0', '2026-09-04 08:48:39'),
+('167', '3', 'Operacoes Basicas', '800 ÷ 20', '', '', '', '', '40', 'Nível Lenda: 800 ÷ 20 = 40.', 'hard', '0', '2026-09-04 08:48:39'),
+('168', '3', 'Operacoes Basicas', '22 - 10', '', '', '', '', '12', 'Nível Fácil: 22 - 10 = 12.', 'easy', '0', '2026-09-04 08:49:29'),
+('169', '3', 'Operacoes Basicas', '10 - 4', '', '', '', '', '6', 'Nível Fácil: 10 - 4 = 6.', 'easy', '0', '2026-09-04 08:49:29'),
+('170', '3', 'Operacoes Basicas', '4 × 6', '', '', '', '', '24', 'Nível Fácil: 4 × 6 = 24.', 'easy', '0', '2026-09-04 08:49:29'),
+('171', '3', 'Operacoes Basicas', '63 - 34', '', '', '', '', '29', 'Nível Médio: 63 - 34 = 29.', 'medium', '0', '2026-09-04 08:50:10'),
+('172', '3', 'Operacoes Basicas', '8 × 9', '', '', '', '', '72', 'Nível Médio: 8 × 9 = 72.', 'medium', '0', '2026-09-04 08:50:11'),
+('173', '3', 'Operacoes Basicas', '41 + 12', '', '', '', '', '53', 'Nível Médio: 41 + 12 = 53.', 'medium', '0', '2026-09-04 08:50:14'),
+('174', '3', 'Operacoes Basicas', '102 - 61', '', '', '', '', '41', 'Nível Difícil: 102 - 61 = 41.', 'hard', '0', '2026-09-04 08:50:20'),
+('175', '3', 'Operacoes Basicas', '12 × 7', '', '', '', '', '84', 'Nível Difícil: 12 × 7 = 84.', 'hard', '0', '2026-09-04 08:50:25'),
+('176', '3', 'Operacoes Basicas', '93 + 59', '', '', '', '', '152', 'Nível Difícil: 93 + 59 = 152.', 'hard', '0', '2026-09-04 08:50:39'),
+('177', '3', 'Operacoes Basicas', '53 + 71', '', '', '', '', '124', 'Nível Difícil: 53 + 71 = 124.', 'hard', '0', '2026-09-04 08:50:52'),
+('178', '3', 'Operacoes Basicas', '12 + 6', '', '', '', '', '18', 'Nível Fácil: 12 + 6 = 18.', 'easy', '0', '2026-09-04 08:51:07'),
+('179', '3', 'Operacoes Basicas', '3 × 3', '', '', '', '', '9', 'Nível Fácil: 3 × 3 = 9.', 'easy', '0', '2026-09-04 08:51:07'),
+('180', '3', 'Operacoes Basicas', '7 + 6', '', '', '', '', '13', 'Nível Fácil: 7 + 6 = 13.', 'easy', '0', '2026-09-04 08:51:08'),
+('181', '3', 'Operacoes Basicas', '8 ÷ 2', '', '', '', '', '4', 'Nível Fácil: 8 ÷ 2 = 4.', 'easy', '0', '2026-09-04 08:51:53'),
+('182', '3', 'Operacoes Basicas', '3 × 3', '', '', '', '', '9', 'Nível Fácil: 3 × 3 = 9.', 'easy', '0', '2026-09-04 08:51:53'),
+('183', '3', 'Operacoes Basicas', '6 + 7', '', '', '', '', '13', 'Nível Fácil: 6 + 7 = 13.', 'easy', '0', '2026-09-04 08:51:53'),
+('184', '3', 'Operacoes Basicas', '18 ÷ 3', '', '', '', '', '6', 'Nível Fácil: 18 ÷ 3 = 6.', 'easy', '0', '2026-09-04 08:51:58'),
+('185', '3', 'Operacoes Basicas', '15 ÷ 3', '', '', '', '', '5', 'Nível Fácil: 15 ÷ 3 = 5.', 'easy', '0', '2026-09-04 08:51:58'),
+('186', '3', 'Operacoes Basicas', '3 × 5', '', '', '', '', '15', 'Nível Fácil: 3 × 5 = 15.', 'easy', '0', '2026-09-04 08:51:58'),
+('187', '3', 'Operacoes Basicas', '13 - 10', '', '', '', '', '3', 'Nível Fácil: 13 - 10 = 3.', 'easy', '0', '2026-09-04 08:52:41'),
+('188', '3', 'Operacoes Basicas', '14 - 4', '', '', '', '', '10', 'Nível Fácil: 14 - 4 = 10.', 'easy', '0', '2026-09-04 08:52:41'),
+('189', '3', 'Operacoes Basicas', '19 - 9', '', '', '', '', '10', 'Nível Fácil: 19 - 9 = 10.', 'easy', '0', '2026-09-04 08:52:41'),
+('190', '3', 'Operacoes Basicas', '3 × 8', '', '', '', '', '24', 'Nível Fácil: 3 × 8 = 24.', 'easy', '0', '2026-09-04 08:52:43'),
+('191', '3', 'Operacoes Basicas', '6 + 8', '', '', '', '', '14', 'Nível Fácil: 6 + 8 = 14.', 'easy', '0', '2026-09-04 08:52:44'),
+('192', '3', 'Operacoes Basicas', '20 ÷ 4', '', '', '', '', '5', 'Nível Fácil: 20 ÷ 4 = 5.', 'easy', '0', '2026-09-04 08:52:44'),
+('193', '3', 'Operacoes Basicas', '2 × 5', '', '', '', '', '10', 'Nível Fácil: 2 × 5 = 10.', 'easy', '0', '2026-09-04 08:52:44'),
+('194', '3', 'Operacoes Basicas', '14 + 12', '', '', '', '', '26', 'Nível Fácil: 14 + 12 = 26.', 'easy', '0', '2026-09-04 08:52:45'),
+('195', '3', 'Operacoes Basicas', '8 + 4', '', '', '', '', '12', 'Nível Fácil: 8 + 4 = 12.', 'easy', '0', '2026-09-04 08:52:45'),
+('196', '3', 'Operacoes Basicas', '4 × 5', '', '', '', '', '20', 'Nível Fácil: 4 × 5 = 20.', 'easy', '0', '2026-09-04 08:52:45'),
+('197', '3', 'Operacoes Basicas', '12 - 3', '', '', '', '', '9', 'Nível Fácil: 12 - 3 = 9.', 'easy', '0', '2026-09-04 08:54:02'),
+('198', '3', 'Operacoes Basicas', '35 ÷ 5', '', '', '', '', '7', 'Nível Fácil: 35 ÷ 5 = 7.', 'easy', '0', '2026-09-04 08:54:02'),
+('199', '3', 'Operacoes Basicas', '5 × 4', '', '', '', '', '20', 'Nível Fácil: 5 × 4 = 20.', 'easy', '0', '2026-09-04 08:54:02'),
+('200', '3', 'Operacoes Basicas', '8 ÷ 4', '', '', '', '', '2', 'Nível Fácil: 8 ÷ 4 = 2.', 'easy', '0', '2026-09-04 08:54:55'),
+('201', '3', 'Operacoes Basicas', '14 - 10', '', '', '', '', '4', 'Nível Fácil: 14 - 10 = 4.', 'easy', '0', '2026-09-04 08:54:55'),
+('202', '3', 'Operacoes Basicas', '11 - 5', '', '', '', '', '6', 'Nível Fácil: 11 - 5 = 6.', 'easy', '0', '2026-09-04 08:54:55'),
+('203', '3', 'Operacoes Basicas', '41 - 26', '', '', '', '', '15', 'Nível Médio: 41 - 26 = 15.', 'medium', '0', '2026-09-04 08:55:01'),
+('204', '3', 'Operacoes Basicas', '50 - 35', '', '', '', '', '15', 'Nível Médio: 50 - 35 = 15.', 'medium', '0', '2026-09-04 08:55:04'),
+('205', '3', 'Operacoes Basicas', '72 ÷ 9', '', '', '', '', '8', 'Nível Médio: 72 ÷ 9 = 8.', 'medium', '0', '2026-09-04 08:55:09'),
+('206', '3', 'Operacoes Basicas', '12 ÷ 3', '', '', '', '', '4', 'Nível Fácil: 12 ÷ 3 = 4.', 'easy', '0', '2026-09-04 08:55:27'),
+('207', '3', 'Operacoes Basicas', '10 + 7', '', '', '', '', '17', 'Nível Fácil: 10 + 7 = 17.', 'easy', '0', '2026-09-04 08:55:27'),
+('208', '3', 'Operacoes Basicas', '11 + 6', '', '', '', '', '17', 'Nível Fácil: 11 + 6 = 17.', 'easy', '0', '2026-09-04 08:55:27'),
+('209', '3', 'Operacoes Basicas', '9 × 9', '', '', '', '', '81', 'Nível Médio: 9 × 9 = 81.', 'medium', '0', '2026-09-04 08:55:34'),
+('210', '3', 'Operacoes Basicas', '7 + 4', '', '', '', '', '11', 'Nível Fácil: 7 + 4 = 11.', 'easy', '0', '2026-09-04 08:55:39'),
+('211', '3', 'Operacoes Basicas', '7 + 3', '', '', '', '', '10', 'Nível Fácil: 7 + 3 = 10.', 'easy', '0', '2026-09-04 08:55:39'),
+('212', '3', 'Operacoes Basicas', '25 ÷ 5', '', '', '', '', '5', 'Nível Fácil: 25 ÷ 5 = 5.', 'easy', '0', '2026-09-04 08:55:39'),
+('213', '3', 'Operacoes Basicas', '63 - 37', '', '', '', '', '26', 'Nível Médio: 63 - 37 = 26.', 'medium', '0', '2026-09-04 08:55:41'),
+('214', '3', 'Operacoes Basicas', '64 ÷ 8', '', '', '', '', '8', 'Nível Médio: 64 ÷ 8 = 8.', 'medium', '0', '2026-09-04 08:55:43'),
+('215', '3', 'Operacoes Basicas', '54 - 37', '', '', '', '', '17', 'Nível Médio: 54 - 37 = 17.', 'medium', '0', '2026-09-04 08:55:45'),
+('216', '3', 'Operacoes Basicas', '64 + 38', '', '', '', '', '102', 'Nível Difícil: 64 + 38 = 102.', 'hard', '0', '2026-09-04 08:56:01'),
+('217', '3', 'Operacoes Basicas', '13 × 6', '', '', '', '', '78', 'Nível Difícil: 13 × 6 = 78.', 'hard', '0', '2026-09-04 08:56:07'),
+('218', '3', 'Operacoes Basicas', '13 × 3', '', '', '', '', '39', 'Nível Difícil: 13 × 3 = 39.', 'hard', '0', '2026-09-04 08:56:16'),
+('219', '3', 'Operacoes Basicas', '115 - 75', '', '', '', '', '40', 'Nível Difícil: 115 - 75 = 40.', 'hard', '0', '2026-09-04 08:56:29'),
+('220', '3', 'Operacoes Basicas', '6 ÷ 3', '', '', '', '', '2', 'Nível Fácil: 6 ÷ 3 = 2.', 'easy', '0', '2026-09-04 08:57:27'),
+('221', '3', 'Operacoes Basicas', '15 + 11', '', '', '', '', '26', 'Nível Fácil: 15 + 11 = 26.', 'easy', '0', '2026-09-04 08:57:27'),
+('222', '3', 'Operacoes Basicas', '40 ÷ 5', '', '', '', '', '8', 'Nível Fácil: 40 ÷ 5 = 8.', 'easy', '0', '2026-09-04 08:57:27'),
+('223', '3', 'Operacoes Basicas', '9 × 5', '', '', '', '', '45', 'Nível Médio: 9 × 5 = 45.', 'medium', '0', '2026-09-04 08:57:58'),
+('224', '3', 'Operacoes Basicas', '6 + 12', '', '', '', '', '18', 'Nível Fácil: 6 + 12 = 18.', 'easy', '0', '2026-09-04 08:58:06'),
+('225', '3', 'Operacoes Basicas', '9 - 4', '', '', '', '', '5', 'Nível Fácil: 9 - 4 = 5.', 'easy', '0', '2026-09-04 08:58:06'),
+('226', '3', 'Operacoes Basicas', '4 + 10', '', '', '', '', '14', 'Nível Fácil: 4 + 10 = 14.', 'easy', '0', '2026-09-04 08:58:06'),
+('227', '1', 'Fracoes e Razoes', '[Reforço] Se você dividir uma barra de chocolate em 10 pedaços e comer 4, qual fração representa a parte que sobrou?', '4/10', '6/10 (ou 3/5)', '1/2', '2/5', 'B', 'O total é 10/10. Subtraindo a parte consumida: 10/10 - 4/10 = 6/10, simplificando por 2 fica 3/5.', 'easy', '1', '2026-09-04 14:42:27'),
+('228', '1', 'Fracoes e Razoes', '[Reforço] Qual fração é equivalente a 3/4?', '6/8', '6/4', '3/8', '9/16', 'A', 'Multiplicando numerador e denominador por 2: 3/4 = (3×2)/(4×2) = 6/8.', 'easy', '1', '2026-09-04 14:42:27'),
+('229', '1', 'Fracoes e Razoes', '[Reforço] Qual é o resultado da soma 2/5 + 1/5?', '3/10', '3/5', '2/25', '1/5', 'B', 'Com denominadores iguais, mantemos o denominador 5 e somamos os numeradores: 2 + 1 = 3/5.', 'easy', '1', '2026-09-04 14:42:27'),
+('230', '3', 'Operacoes Basicas', '10 ÷ 2', '', '', '', '', '5', 'Nível Fácil: 10 ÷ 2 = 5.', 'easy', '0', '2026-09-09 07:52:14'),
+('231', '1', 'Fracoes e Razoes', '[Reforço] Se você dividir uma barra de chocolate em 10 pedaços e comer 4, qual fração representa a parte que sobrou?', '4/10', '6/10 (ou 3/5)', '1/2', '2/5', 'B', 'O total é 10/10. Subtraindo a parte consumida: 10/10 - 4/10 = 6/10, simplificando por 2 fica 3/5.', 'easy', '1', '2026-09-09 07:52:15'),
+('232', '1', 'Fracoes e Razoes', '[Reforço] Qual fração é equivalente a 3/4?', '6/8', '6/4', '3/8', '9/16', 'A', 'Multiplicando numerador e denominador por 2: 3/4 = (3×2)/(4×2) = 6/8.', 'easy', '1', '2026-09-09 07:52:15'),
+('233', '1', 'Fracoes e Razoes', '[Reforço] Qual é o resultado da soma 2/5 + 1/5?', '3/10', '3/5', '2/25', '1/5', 'B', 'Com denominadores iguais, mantemos o denominador 5 e somamos os numeradores: 2 + 1 = 3/5.', 'easy', '1', '2026-09-09 07:52:15');
+
+DROP TABLE IF EXISTS `game_sessions`;
+CREATE TABLE `game_sessions` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `game_id` int NOT NULL,
+  `score` int NOT NULL DEFAULT '0',
+  `correct_answers` int NOT NULL DEFAULT '0',
+  `wrong_answers` int NOT NULL DEFAULT '0',
+  `time_spent` int NOT NULL DEFAULT '0',
+  `difficulty` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'easy',
+  `played_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `fk_session_user` (`user_id`),
+  KEY `fk_session_game` (`game_id`),
+  CONSTRAINT `fk_session_game` FOREIGN KEY (`game_id`) REFERENCES `games` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_session_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO `game_sessions` (`id`, `user_id`, `game_id`, `score`, `correct_answers`, `wrong_answers`, `time_spent`, `difficulty`, `played_at`) VALUES
+('1', '2', '1', '350', '7', '1', '140', 'easy', '2026-09-02 16:33:54'),
+('2', '2', '2', '280', '6', '2', '180', 'easy', '2026-09-02 16:33:54'),
+('3', '3', '1', '400', '8', '0', '110', 'easy', '2026-09-02 16:33:54'),
+('4', '3', '2', '380', '8', '0', '125', 'easy', '2026-09-02 16:33:54'),
+('5', '5', '3', '400', '28', '11', '72', 'hard', '2026-09-04 08:42:28');
 
 SET FOREIGN_KEY_CHECKS = 1;
-
--- =============================================================================
--- DADOS INICIAIS (SEEDS)
--- =============================================================================
-
--- Usuarios Padrao para Testes Imediatos (Senha para ambos: senha123)
-INSERT IGNORE INTO `users` (`id`, `name`, `email`, `password_hash`, `role`, `avatar_color`, `level`, `xp`) VALUES
-(1, 'Professor Carlos Silva', 'professor@mathplay.com', '$2y$10$Cx.x1woy4ECbzqwYBJVCU.o3HujHRE5m0SzGpLmG7Feytzo6ZIWhq', 'teacher', '#059669', 5, 520),
-(2, 'Lucas Santos', 'aluno@mathplay.com', '$2y$10$Cx.x1woy4ECbzqwYBJVCU.o3HujHRE5m0SzGpLmG7Feytzo6ZIWhq', 'student', '#4F46E5', 2, 180),
-(3, 'Mariana Oliveira', 'mariana@mathplay.com', '$2y$10$Cx.x1woy4ECbzqwYBJVCU.o3HujHRE5m0SzGpLmG7Feytzo6ZIWhq', 'student', '#DB2777', 3, 290);
-
--- Jogos Disponiveis
-INSERT IGNORE INTO `games` (`id`, `slug`, `name`, `topic`, `description`, `color_start`, `color_end`) VALUES
-(1, 'fractions', 'Chef das Fracoes', 'Fracoes e Razoes', 'Monte receitas incriveis dividindo ingredientes na proporcao certa! Domine fracoes enquanto cozinha pratos deliciosos.', '#F97316', '#EF4444'),
-(2, 'geometry', 'Construtor de Cidades', 'Geometria Plana', 'Construa sua propria metropole calculando areas e perimetros! Cada edificio precisa do espaco certo para ser erguido.', '#10B981', '#3B82F6');
-
--- Conquistas do Sistema
-INSERT IGNORE INTO `achievements` (`id`, `name`, `description`, `icon`, `condition_type`, `condition_value`, `color`) VALUES
-(1, 'Primeiro Passo', 'Complete sua primeira partida na plataforma', 'fa-gamepad', 'games_played', 1, '#F59E0B'),
-(2, 'Dedicado', 'Jogue 5 partidas no sistema', 'fa-calendar', 'games_played', 5, '#3B82F6'),
-(3, 'Cem Pontos!', 'Alcance a marca de 100 XP acumulados', 'fa-bolt', 'xp_total', 100, '#EF4444'),
-(4, 'Mestre do XP', 'Alcance 500 XP acumulados no perfil', 'fa-award', 'xp_total', 500, '#F97316'),
-(5, 'Estrela em Ascensao', 'Alcance o nivel 3 de maestria', 'fa-star', 'level', 3, '#8B5CF6'),
-(6, 'Lendario', 'Alcance o nivel 5 de maestria', 'fa-crown', 'level', 5, '#F59E0B');
-
--- Conquistas Desbloqueadas para os Alunos de Demonstracao
-INSERT IGNORE INTO `user_achievements` (`user_id`, `achievement_id`) VALUES
-(2, 1),
-(2, 3),
-(3, 1),
-(3, 3),
-(3, 5);
-
--- Questoes: Chef das Fracoes (Jogo 1)
-INSERT IGNORE INTO `questions` (`id`, `game_id`, `topic`, `question_text`, `option_a`, `option_b`, `option_c`, `option_d`, `correct_answer`, `explanation`, `difficulty`) VALUES
-(1, 1, 'Fracoes e Razoes', 'A receita pede 1/2 xicara de farinha. Para fazer o dobro da receita, quanto voce precisa?', '1/2 xicara', '1 xicara inteira', '2 xicaras', '1/4 de xicara', 'B', '1/2 multiplicado por 2 = 2/2 = 1 xicara inteira!', 'easy'),
-(2, 1, 'Fracoes e Razoes', 'Uma pizza foi cortada em 8 pedacos iguais. Joao comeu 3 pedacos. Que fracao da pizza ele comeu?', '1/4 da pizza', '3/5 da pizza', '3/8 da pizza', '5/8 da pizza', 'C', 'Joao consumiu 3 de um total de 8 partes, o que representa 3/8 da pizza.', 'easy'),
-(3, 1, 'Fracoes e Razoes', 'Qual e a metade exata da fracao 3/4?', '3/2', '1/4', '3/8', '6/4', 'C', 'Calcular a metade equivale a dividir por 2: (3/4) / 2 = 3/8.', 'easy'),
-(4, 1, 'Fracoes e Razoes', 'Uma receita usa 2/3 de copo de leite. Qual fracao do copo restou?', '1/3 de copo', '2/3 de copo', '1/2 de copo', '3/3 de copo', 'A', 'O copo inteiro representa 3/3. Subtraindo a parte usada: 3/3 - 2/3 = 1/3.', 'easy'),
-(5, 1, 'Fracoes e Razoes', 'Qual e o resultado da soma de 1/4 + 1/4?', '2/8', '1/2', '1/8', '3/4', 'B', '1/4 + 1/4 = 2/4. Simplificando a fracao por 2, obtemos 1/2.', 'easy'),
-(6, 1, 'Fracoes e Razoes', 'Uma jarra contem 3/4 de suco. Voce bebe 1/4. Quanto resta na jarra?', '1/2 da jarra', '1/4 da jarra', '3/4 da jarra', '2/8 da jarra', 'A', '3/4 - 1/4 = 2/4 = 1/2 da jarra de suco.', 'medium'),
-(7, 1, 'Fracoes e Razoes', 'Se 1/3 de uma receita demanda 6 ovos, quantos ovos serao necessarios para a receita completa?', '3 ovos', '9 ovos', '18 ovos', '12 ovos', 'C', 'Se 1/3 corresponde a 6 ovos, o total (3/3) e obtido por 6 x 3 = 18 ovos.', 'medium'),
-(8, 1, 'Fracoes e Razoes', 'Qual das fracoes abaixo e equivalente a 2/3?', '4/9', '4/6', '3/4', '6/4', 'B', '2/3 = 4/6 multiplicando numerador e denominador pelo fator 2.', 'medium');
-
--- Questoes: Construtor de Cidades (Jogo 2)
-INSERT IGNORE INTO `questions` (`id`, `game_id`, `topic`, `question_text`, `option_a`, `option_b`, `option_c`, `option_d`, `correct_answer`, `explanation`, `difficulty`) VALUES
-(9,  2, 'Geometria Plana', 'Um terreno retangular tem 5m de largura e 8m de comprimento. Qual e a sua area total?', '26 m2', '40 m2', '13 m2', '20 m2', 'B', 'A area do retangulo e calculada por base x altura: 5 x 8 = 40 m2.', 'easy'),
-(10, 2, 'Geometria Plana', 'Uma praca quadrada possui lado de 6m. Qual e o seu perimetro total?', '12 metros', '36 metros', '24 metros', '18 metros', 'C', 'O perimetro do quadrado e dado por 4 x lado: 4 x 6 = 24 metros.', 'easy'),
-(11, 2, 'Geometria Plana', 'Para cercar um jardim retangular de 4m por 3m, quantos metros de cerca sao necessarios?', '7 metros', '12 metros', '14 metros', '24 metros', 'C', 'Perimetro = 2 x (4 + 3) = 2 x 7 = 14 metros de cerca.', 'easy'),
-(12, 2, 'Geometria Plana', 'Um apartamento quadrado possui area de 25m2. Qual e a medida de cada lado?', '6 metros', '5 metros', '4 metros', '7 metros', 'B', 'A area do quadrado e lado ao quadrado (L^2). Raiz quadrada de 25 = 5 metros.', 'easy'),
-(13, 2, 'Geometria Plana', 'Uma sala retangular mede 10m por 4m. Quantas placas de piso de 1m2 sao necessarias para cobrir o chao?', '28 placas', '14 placas', '40 placas', '20 placas', 'C', 'Area total da sala = 10 x 4 = 40 m2. Logo, sao necessarias 40 placas de 1m2.', 'medium'),
-(14, 2, 'Geometria Plana', 'Um parque triangular possui base de 8m e altura de 5m. Qual e a sua area?', '40 m2', '13 m2', '20 m2', '26 m2', 'C', 'Area do triangulo = (base x altura) / 2 = (8 x 5) / 2 = 40 / 2 = 20 m2.', 'medium'),
-(15, 2, 'Geometria Plana', 'Uma praca circular tem raio de 3m. Qual e a area aproximada? (Considere pi = 3)', '9 m2', '18 m2', '27 m2', '6 m2', 'C', 'Area do circulo = pi x r^2 = 3 x (3^2) = 3 x 9 = 27 m2.', 'medium'),
-(16, 2, 'Geometria Plana', 'Um terreno em L e composto por um retangulo 10x6 do qual retirou-se um recorte 4x3. Qual e a area util restante?', '48 m2', '60 m2', '72 m2', '52 m2', 'A', 'Area total inicial: 10 x 6 = 60. Area recortada: 4 x 3 = 12. Area util restante: 60 - 12 = 48 m2.', 'hard');
-
--- Sessoes de Demonstracao
-INSERT IGNORE INTO `game_sessions` (`user_id`, `game_id`, `score`, `correct_answers`, `wrong_answers`, `time_spent`, `difficulty`) VALUES
-(2, 1, 350, 7, 1, 140, 'easy'),
-(2, 2, 280, 6, 2, 180, 'easy'),
-(3, 1, 400, 8, 0, 110, 'easy'),
-(3, 2, 380, 8, 0, 125, 'easy');
-
--- Trilhas de Aprendizado Iniciais
-INSERT IGNORE INTO `learning_trail` (`user_id`, `topic`, `progress_pct`, `current_level`) VALUES
-(2, 'Fracoes e Razoes', 88, 'easy'),
-(2, 'Geometria Plana', 75, 'easy'),
-(3, 'Fracoes e Razoes', 100, 'medium'),
-(3, 'Geometria Plana', 100, 'medium');
-
--- Notificacoes de Demonstracao
-INSERT IGNORE INTO `notifications` (`user_id`, `type`, `title`, `message`, `is_read`) VALUES
-(2, 'achievement', 'Conquista Desbloqueada!', 'Voce desbloqueou: Primeiro Passo - Complete sua primeira partida na plataforma', 1),
-(2, 'achievement', 'Conquista Desbloqueada!', 'Voce desbloqueou: Cem Pontos! - Alcance a marca de 100 XP acumulados', 1),
-(1, 'alert', 'Alerta Pedagogico', 'Turma do 7o ano com bom desempenho inicial em Fracoes e Razoes.', 0);

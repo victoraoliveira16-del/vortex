@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    GAMES UI & ENGINE STYLES (games.css)
    ========================================================================== */
 
@@ -402,6 +402,20 @@
   color: #991B1B;
 }
 
+.calc-arena .feedback-wrong {
+  background: #54233A;
+  border-color: #FF6B81;
+  color: #FFD1D9;
+}
+
+.calc-arena .feedback-wrong .feedback-explanation {
+  color: #FFF1F3;
+}
+
+.calc-arena .feedback-correct .feedback-explanation {
+  color: #D1FAE5;
+}
+
 .dark-mode .feedback-wrong {
   color: #F87171;
 }
@@ -597,5 +611,701 @@
   }
   .result-stats {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ==========================================================================
+   CALCULADORA MENTAL — SPEED MATH (games/mental-math.php)
+   Design 100% fiel à imagem da plataforma de cálculo mental
+   ========================================================================== */
+/* ==========================================================================
+   ARCADE GAMER DINÂMICO - CALCULADORA MENTAL (games.css)
+   ========================================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700;800;900&family=Lexend:wght@600;700;800;900&display=swap');
+
+.calc-arcade-wrapper {
+  min-height: calc(100vh - var(--navbar-h) - var(--a11y-h) - 40px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 1.5rem 1rem 3.5rem;
+}
+
+/* Gabinete Arcade Principal */
+.arcade-cabinet {
+  width: 100%;
+  max-width: 490px;
+  margin: 0 auto;
+  background: radial-gradient(120% 120% at 50% 0%, #102A45 0%, #081626 70%, #040D18 100%);
+  border: 2px solid #1E5076;
+  border-top-color: #38BDF8;
+  border-radius: 28px;
+  padding: 1.75rem 1.5rem 2rem;
+  box-shadow: 
+    0 25px 60px -10px rgba(2, 6, 23, 0.85),
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Partículas e texturas sutis de cockpit arcade */
+.arcade-cabinet::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    radial-gradient(2px 2px at 30px 40px, rgba(56, 189, 248, 0.35) 100%, transparent),
+    radial-gradient(2px 2px at 120px 160px, rgba(255, 255, 255, 0.25) 100%, transparent),
+    radial-gradient(2px 2px at 280px 70px, rgba(45, 212, 191, 0.3) 100%, transparent),
+    radial-gradient(2px 2px at 420px 130px, rgba(255, 255, 255, 0.2) 100%, transparent),
+    radial-gradient(2px 2px at 90px 320px, rgba(56, 189, 248, 0.25) 100%, transparent),
+    radial-gradient(2.5px 2.5px at 360px 350px, rgba(245, 158, 11, 0.25) 100%, transparent);
+  background-size: 490px 520px;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Efeito de Tremor do Gabinete ao errar */
+@keyframes arcadeShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-7px); }
+  40%, 80% { transform: translateX(7px); }
+}
+
+.arcade-cabinet.screen-shake {
+  animation: arcadeShake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+/* Marquee Superior do Gabinete */
+.arcade-marquee {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  position: relative;
+  z-index: 3;
+}
+
+.arcade-nav-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #94A3B8;
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-size: 0.825rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.arcade-nav-back:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #FFFFFF;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.arcade-title-group {
+  text-align: center;
+}
+
+.arcade-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #34D399;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--radius-full);
+}
+
+.arcade-live-badge i {
+  font-size: 0.5rem;
+  animation: pulse 1s infinite alternate;
+}
+
+.arcade-title {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #FFFFFF;
+  margin: 0.15rem 0 0;
+  letter-spacing: -0.01em;
+}
+
+.arcade-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.arcade-pill-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #E2E8F0;
+  padding: 0.4rem 0.65rem;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.arcade-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #FFFFFF;
+}
+
+.arcade-btn-exit {
+  background: rgba(239, 68, 68, 0.16);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #F87171;
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.arcade-btn-exit:hover {
+  background: #EF4444;
+  color: #FFFFFF;
+  border-color: #EF4444;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.5);
+}
+
+/* Painel HUD Integrado */
+.arcade-hud {
+  background: #071526;
+  border: 1px solid #163654;
+  border-radius: 20px;
+  padding: 0.9rem 1.15rem;
+  margin-bottom: 1.15rem;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5);
+  position: relative;
+  z-index: 3;
+}
+
+.arcade-hud-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.arcade-metric {
+  display: flex;
+  flex-direction: column;
+}
+
+.arcade-metric-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #94A3B8;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.arcade-lives-metric {
+  align-items: flex-start;
+}
+
+.arcade-lives-box {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: rgba(239, 68, 68, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.arcade-lives-box .life-heart {
+  font-size: 1.05rem;
+  color: #EF4444;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+}
+
+.arcade-lives-box .life-heart.lit {
+  animation: pulse 1.6s infinite alternate;
+  filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.7));
+}
+
+.arcade-lives-box .life-heart.lost {
+  opacity: 0.2;
+  transform: scale(0.75);
+  filter: grayscale(1);
+  color: #64748B;
+}
+
+.arcade-center-metric {
+  align-items: center;
+}
+
+.arcade-qnum {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #94A3B8;
+  margin-top: 0.25rem;
+  letter-spacing: 0.02em;
+}
+
+.arcade-score-metric {
+  align-items: flex-end;
+}
+
+.arcade-score-value {
+  font-family: 'Fredoka', 'Lexend', monospace;
+  font-size: 1.45rem;
+  font-weight: 900;
+  color: #FBBF24;
+  line-height: 1;
+  text-shadow: 0 0 10px rgba(251, 191, 36, 0.4);
+}
+
+/* Níveis do Jogo */
+.calc-level-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: var(--radius-full);
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 800;
+  font-size: 0.825rem;
+  letter-spacing: 0.02em;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.calc-level-badge.level-easy {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  color: #34D399;
+}
+
+.calc-level-badge.level-medium {
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  color: #FBBF24;
+}
+
+.calc-level-badge.level-hard {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  color: #F87171;
+}
+
+.calc-level-badge.level-master {
+  background: linear-gradient(135deg, #DC2626 0%, #B45309 100%);
+  border: 1px solid #F59E0B;
+  color: #FFFFFF;
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.6);
+  animation: pulse 1.2s infinite alternate;
+}
+
+/* Segunda Linha do HUD: Combo + Cronômetro Digital */
+.arcade-hud-sub {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.calc-streak-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(250, 204, 21, 0.15);
+  border: 1px solid rgba(250, 204, 21, 0.4);
+  color: #FDE047;
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.calc-streak-badge.fire {
+  background: linear-gradient(135deg, #EF4444, #F59E0B);
+  color: #FFFFFF;
+  border-color: #EF4444;
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+  animation: pulse 0.9s infinite alternate;
+}
+
+.arcade-timer-widget {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.arcade-timer-bar-track {
+  flex: 1;
+  max-width: 140px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.arcade-timer-bar-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #10B981, #06B6D4);
+  border-radius: var(--radius-full);
+  transition: width 0.1s linear, background-color 0.2s ease;
+}
+
+.arcade-timer-bar-fill.urgent {
+  background: linear-gradient(90deg, #F59E0B, #EF4444);
+  animation: pulse 0.5s infinite alternate;
+}
+
+.arcade-timer-digital {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: 'Fredoka', monospace;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #38BDF8;
+  min-width: 65px;
+  justify-content: flex-end;
+}
+
+.arcade-timer-digital.urgent {
+  color: #EF4444;
+  animation: pulse 0.6s infinite alternate;
+}
+
+/* Faixa de Progresso do Tier de Nível */
+.arcade-tier-track {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-top: 0.65rem;
+}
+
+.arcade-tier-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #38BDF8, #34D399);
+  transition: width 0.3s ease;
+  border-radius: var(--radius-full);
+}
+
+/* Moldura e Tela CRT Arcade */
+.arcade-screen-bezel {
+  background: #050E18;
+  border: 2px solid #143753;
+  border-radius: 22px;
+  padding: 1.25rem 1rem 1.15rem;
+  margin-bottom: 1.25rem;
+  box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.6), 0 4px 15px rgba(0, 0, 0, 0.3);
+  position: relative;
+  z-index: 3;
+}
+
+.arcade-screen {
+  text-align: center;
+  position: relative;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+}
+
+@keyframes screenCorrectPulse {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.8); }
+  50% { box-shadow: 0 0 35px 6px rgba(16, 185, 129, 0.5); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.arcade-screen.screen-correct {
+  animation: screenCorrectPulse 0.55s ease-out;
+}
+
+.arcade-combo-pop {
+  position: absolute;
+  top: -15px;
+  right: 10px;
+  background: #F59E0B;
+  color: #071526;
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 900;
+  font-size: 0.95rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-full);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+  opacity: 0;
+  transform: translateY(10px) scale(0.8);
+  pointer-events: none;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.arcade-combo-pop.show {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.arcade-prompt-label {
+  font-size: 0.725rem;
+  font-weight: 800;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.35rem;
+}
+
+.calc-expression {
+  font-family: 'Fredoka', 'Lexend', sans-serif;
+  font-size: 4rem;
+  font-weight: 900;
+  color: #FFFFFF;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+  margin: 0.25rem 0 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+/* Display de Entrada Digital */
+.arcade-display {
+  background: #0B1C2D;
+  border: 2px solid #1B4568;
+  border-radius: 16px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1.25rem;
+  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.5);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+}
+
+.arcade-display:focus-within,
+.arcade-display.active {
+  border-color: #2DD4BF;
+  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.25), inset 0 3px 6px rgba(0, 0, 0, 0.5);
+}
+
+.arcade-display-text {
+  font-family: 'Fredoka', monospace;
+  font-size: 2.75rem;
+  font-weight: 800;
+  color: #FFFFFF;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  min-height: 1em;
+}
+
+.arcade-cursor {
+  display: inline-block;
+  width: 4px;
+  height: 2.4rem;
+  background: #2DD4BF;
+  border-radius: 2px;
+  margin-left: 4px;
+  animation: blink 0.8s infinite;
+}
+
+/* Teclado Físico Tátil 3D */
+.arcade-controller {
+  position: relative;
+  z-index: 3;
+}
+
+.calc-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 0.9rem;
+}
+
+.arcade-key {
+  background: #153448;
+  color: #FFFFFF;
+  border: 1px solid #285E7B;
+  border-top-color: #3B7B9E;
+  border-radius: 16px;
+  height: 64px;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 2.1rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 5px 0 #091D28, 0 8px 16px rgba(0, 0, 0, 0.35);
+  transition: transform 0.08s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.08s ease, background-color 0.15s ease;
+  user-select: none;
+  position: relative;
+}
+
+.arcade-key:hover {
+  background: #1E465F;
+}
+
+.arcade-key:active,
+.arcade-key.pressed {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 #091D28, 0 3px 6px rgba(0, 0, 0, 0.25);
+  background: #275674;
+}
+
+.arcade-key-comma {
+  font-size: 2.4rem;
+  line-height: 0.8;
+}
+
+.arcade-key-backspace {
+  background: #5E2638;
+  border-color: #8C3752;
+  border-top-color: #B24668;
+  box-shadow: 0 5px 0 #33141F, 0 8px 16px rgba(0, 0, 0, 0.35);
+  color: #FDA4AF;
+}
+
+.arcade-key-backspace:hover {
+  background: #732E45;
+}
+
+.arcade-key-backspace:active,
+.arcade-key-backspace.pressed {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 #33141F;
+  background: #8C3752;
+}
+
+/* Botão GO / ENVIAR */
+.arcade-go-btn {
+  width: 100%;
+  background: linear-gradient(180deg, #10B981 0%, #059669 100%);
+  color: #FFFFFF;
+  border: 1px solid #34D399;
+  border-top-color: #6EE7B7;
+  border-radius: 16px;
+  height: 64px;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  box-shadow: 0 6px 0 #047857, 0 12px 24px rgba(16, 185, 129, 0.3);
+  transition: transform 0.08s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.08s ease, filter 0.15s ease;
+  user-select: none;
+}
+
+.arcade-go-btn:hover {
+  filter: brightness(1.06);
+}
+
+.arcade-go-btn:active,
+.arcade-go-btn.pressed {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 #047857, 0 4px 8px rgba(16, 185, 129, 0.2);
+}
+
+.arcade-go-kbd kbd {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-family: 'Lexend', monospace;
+  font-weight: 800;
+}
+
+.arcade-next-btn {
+  width: 100%;
+  background: linear-gradient(180deg, #0284C7 0%, #0369A1 100%);
+  color: #FFFFFF;
+  border: 1px solid #38BDF8;
+  border-top-color: #7DD3FC;
+  border-radius: 16px;
+  height: 56px;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  box-shadow: 0 5px 0 #075985, 0 10px 20px rgba(2, 132, 199, 0.3);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.arcade-next-btn:hover {
+  filter: brightness(1.06);
+}
+
+.arcade-next-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 #075985;
+}
+
+.arcade-keyboard-hint {
+  text-align: center;
+  font-size: 0.775rem;
+  color: #64748B;
+  font-weight: 600;
+  margin-top: 0.85rem;
+}
+
+/* Responsividade Mobile */
+@media (max-width: 480px) {
+  .arcade-cabinet {
+    padding: 1.25rem 1rem 1.5rem;
+    border-radius: 20px;
+  }
+  .calc-expression {
+    font-size: 3.15rem;
+  }
+  .arcade-key {
+    height: 58px;
+    font-size: 1.85rem;
+  }
+  .arcade-go-btn {
+    height: 58px;
+    font-size: 1.15rem;
+  }
+  .arcade-display-text {
+    font-size: 2.25rem;
   }
 }

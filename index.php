@@ -15,7 +15,7 @@ require_once __DIR__ . '/includes/header.php';
     <div class="hero-text" data-aos="fade-right">
       <span class="hero-badge"><i class="fa-solid fa-bolt"></i> Plataforma Gamificada</span>
       <h1 class="hero-title">Aprenda Matematica<br><span>jogando de verdade!</span></h1>
-      <p class="hero-subtitle">A MathPlay transforma Matematica em aventura epica. Ganhe XP, desbloqueie medalhas e evolua seu personagem dominando conteudos do Ensino Fundamental II.</p>
+      <p class="hero-subtitle">A Vortex transforma Matematica em aventura epica. Ganhe XP, desbloqueie medalhas e evolua seu personagem dominando conteudos do Ensino Fundamental II.</p>
       <div class="hero-actions">
         <?php if (isset($_SESSION['user_id'])): ?>
           <a href="/vortex/dashboard.php" class="btn btn-primary btn-lg"><i class="fa-solid fa-rocket"></i> Meu Dashboard</a>
@@ -28,7 +28,7 @@ require_once __DIR__ . '/includes/header.php';
       <div class="hero-stats">
         <div class="hero-stat">
           <div class="hero-stat-icon"><i class="fa-solid fa-gamepad"></i></div>
-          <div class="hero-stat-num">2</div>
+          <div class="hero-stat-num">3</div>
           <div class="hero-stat-label">Jogos Interativos</div>
         </div>
         <div class="hero-stat">
@@ -55,7 +55,7 @@ require_once __DIR__ . '/includes/header.php';
         </div>
       </div>
       <div class="hero-float-card card-2">
-        <div class="hero-float-icon-wrap hero-float-purple">
+        <div class="hero-float-icon-wrap hero-float-indigo">
           <i class="fa-solid fa-star"></i>
         </div>
         <div>
@@ -93,7 +93,7 @@ require_once __DIR__ . '/includes/header.php';
         </div>
         <div class="step-body">
           <h3 class="step-title">Escolha um Jogo</h3>
-          <p class="step-desc">Selecione Chef das Fracoes ou Construtor de Cidades e mergulhe no aprendizado interativo.</p>
+          <p class="step-desc">Selecione Chef das Frações, Construtor de Cidades ou Calculadora Mental e mergulhe no aprendizado.</p>
         </div>
       </div>
       <div class="step-card" data-aos="fade-up" data-aos-delay="200">
@@ -116,7 +116,7 @@ require_once __DIR__ . '/includes/header.php';
     <div class="section-header" data-aos="fade-up">
       <span class="section-tag">Nossos Jogos</span>
       <h2 class="section-title" id="games-title">Aprenda jogando com aventuras incriveis</h2>
-      <p class="section-subtitle">Dois jogos criados para tornar Matematica divertida, desafiadora e educativa.</p>
+      <p class="section-subtitle">Três jogos criados para tornar Matemática divertida, desafiadora e educativa.</p>
     </div>
     <div class="game-grid">
       <article class="game-card game-card-fractions" tabindex="0" role="button" aria-label="Jogar Chef das Fracoes"
@@ -164,6 +164,30 @@ require_once __DIR__ . '/includes/header.php';
             <i class="fa-solid fa-signal text-success"></i> Facil a Dificil
           </span>
           <span><i class="fa-solid fa-building"></i> Construcao Visual</span>
+        </div>
+      </article>
+
+      <article class="game-card game-card-mental" tabindex="0" role="button" aria-label="Jogar Calculadora Mental"
+        onclick="window.location='/vortex/games/mental-math.php'"
+        onkeypress="if(event.key==='Enter')window.location='/vortex/games/mental-math.php'"
+        data-aos="fade-up">
+        <img src="https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800&q=85&auto=format&fit=crop" alt="Cálculos matemáticos" class="game-card-img" loading="lazy">
+        <div class="game-card-gradient"></div>
+        <div class="game-card-body">
+          <div class="game-card-icon-wrap">
+            <i class="fa-solid fa-calculator font-heavy"></i>
+          </div>
+          <h3 class="game-card-title">Calculadora Mental</h3>
+          <p class="game-card-desc">Resolva cálculos das quatro operações contra o relógio e aumente seu combo a cada acerto.</p>
+          <a href="/vortex/games/mental-math.php" class="btn game-btn-play">
+            <i class="fa-solid fa-play"></i> Jogar Agora
+          </a>
+        </div>
+        <div class="game-card-footer">
+          <span class="game-difficulty">
+            <i class="fa-solid fa-bolt text-warning"></i> Desafio rápido
+          </span>
+          <span><i class="fa-solid fa-calculator"></i> Combos de acertos</span>
         </div>
       </article>
     </div>

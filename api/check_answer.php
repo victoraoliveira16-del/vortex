@@ -8,14 +8,27 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+if (!isLoggedIn()) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'error' => 'Sessao expirada. Faca login novamente.']);
+    exit;
+}
+
 $data = json_decode(file_get_contents('php://input'), true) ?? [];
 
+$csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($data['csrf_token'] ?? '');
+if (!$csrfToken || !verifyCsrfToken($csrfToken)) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'error' => 'Sessao invalida. Recarregue a pagina e tente novamente.']);
+    exit;
+}
+
 $questionId = (int)($data['question_id'] ?? 0);
-$chosen     = strtoupper(trim($data['chosen'] ?? ''));
+$chosen     = trim((string)($data['chosen'] ?? ''));
 $hintUsed   = !empty($data['hint_used']);
 $gameId     = (int)($data['game_id'] ?? 0);
 
-if (!$questionId || !in_array($chosen, ['A','B','C','D','TIMEOUT'])) {
+if (!$questionId || $chosen === '') {
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => 'Dados inválidos']);
     exit;
@@ -32,23 +45,30 @@ if (!$q) {
     exit;
 }
 
-$isCorrect = ($chosen === $q['correct_answer']);
-$points    = 0;
+$normChosen  = str_replace(',', '.', $chosen);
+$normCorrect = str_replace(',', '.', trim($q['correct_answer']));
+
+$isCorrect = false;
+if (strcasecmp($normChosen, $normCorrect) === 0) {
+    $isCorrect = true;
+} elseif (is_numeric($normChosen) && is_numeric($normCorrect)) {
+    $isCorrect = (abs((float)$normChosen - (float)$normCorrect) < 0.0001);
+}
+
+$points = 0;
 if ($isCorrect) {
     $points = $hintUsed ? 45 : 50; // teto máximo por questão: 50pts
 }
 
-// Se o usuário estiver autenticado, acumula na sessão para anti-cheat do save_score
-if (isLoggedIn() && $gameId > 0) {
-    if (!isset($_SESSION['game_answers'][$gameId])) {
-        $_SESSION['game_answers'][$gameId] = ['score' => 0, 'correct' => 0, 'wrong' => 0, 'ids' => []];
-    }
-    $ga = &$_SESSION['game_answers'][$gameId];
-    if (!in_array($questionId, $ga['ids'])) {
-        $ga['ids'][]  = $questionId;
-        $ga['score'] += $points;
-        if ($isCorrect) { $ga['correct']++; } else { $ga['wrong']++; }
-    }
+// Acumula somente respostas autenticadas para o registro da partida.
+if (!isset($_SESSION['game_answers'][$gameId])) {
+    $_SESSION['game_answers'][$gameId] = ['score' => 0, 'correct' => 0, 'wrong' => 0, 'ids' => []];
+}
+$ga = &$_SESSION['game_answers'][$gameId];
+if (!in_array($questionId, $ga['ids'])) {
+    $ga['ids'][] = $questionId;
+    $ga['score'] += $points;
+    if ($isCorrect) { $ga['correct']++; } else { $ga['wrong']++; }
 }
 
 echo json_encode([

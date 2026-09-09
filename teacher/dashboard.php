@@ -15,7 +15,7 @@ $pdo->prepare('UPDATE notifications SET is_read=1 WHERE type="alert"')->execute(
 
 // Todos os alunos com estatisticas
 $stmt = $pdo->prepare('
-  SELECT u.id, u.name, u.email, u.level, u.xp, u.avatar_color,
+  SELECT u.id, u.name, u.email, u.level, u.xp, u.avatar_color, u.profile_photo,
     COUNT(gs.id) AS total_games,
     COALESCE(SUM(gs.correct_answers), 0) AS total_correct,
     COALESCE(SUM(gs.wrong_answers), 0) AS total_wrong,
@@ -125,7 +125,7 @@ require_once __DIR__ . '/../includes/header.php';
     ?>
     <div class="game-stat-card">
       <h3 class="game-stat-card-title">
-        <i class="fa-solid <?= $g['slug'] === 'fractions' ? 'fa-utensils' : 'fa-city' ?> text-primary"></i>
+        <i class="fa-solid <?= match($g['slug']){ 'fractions'=>'fa-utensils', 'geometry'=>'fa-city', 'mental-math'=>'fa-calculator', default=>'fa-gamepad' } ?> text-primary"></i>
         <?= htmlspecialchars($g['name']) ?>
       </h3>
       <div class="game-stat-row">
@@ -190,7 +190,9 @@ require_once __DIR__ . '/../includes/header.php';
             <td>
               <div class="align-center" style="display:flex;gap:0.65rem;">
                 <div class="avatar avatar-sm" style="background:<?= htmlspecialchars($s['avatar_color'] ?? '#4F46E5') ?>;">
-                  <?= mb_strtoupper(mb_substr($s['name'], 0, 1)) ?>
+                  <?php if (!empty($s['profile_photo'])): ?><img src="<?= htmlspecialchars($s['profile_photo']) ?>" alt=""><?php else: ?>
+                    <?= mb_strtoupper(mb_substr($s['name'], 0, 1)) ?>
+                  <?php endif; ?>
                 </div>
                 <div>
                   <div class="font-bold"><?= htmlspecialchars($s['name']) ?></div>
@@ -250,10 +252,14 @@ async function generateAI(){
   var gameId = parseInt(document.getElementById('gameIdInput').value) || 1;
   showToast('Processando solicitacao com Claude AI...', 'info');
   try {
+    var token = getCsrfToken();
     var res = await fetch('/vortex/api/generate_questions.php', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ topic: topic, game_id: gameId })
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': token
+      },
+      body: JSON.stringify({ topic: topic, game_id: gameId, csrf_token: token })
     });
     var data = await res.json();
     if(data.success){

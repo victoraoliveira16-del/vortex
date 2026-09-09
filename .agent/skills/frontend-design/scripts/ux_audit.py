@@ -112,9 +112,10 @@ class UXAuditor:
         filename = os.path.basename(filepath)
 
         # Pre-calculate common flags
+        is_markup = filename.endswith(('.html', '.htm', '.php', '.jsx', '.tsx', '.vue', '.svelte'))
         has_long_text = bool(re.search(r'<p|<div.*class=.*text|article|<span.*text', content, re.IGNORECASE))
-        has_form = bool(re.search(r'<form|<input|password|credit|card|payment', content, re.IGNORECASE))
-        complex_elements = len(re.findall(r'<input|<select|<textarea|<option', content, re.IGNORECASE))
+        has_form = is_markup and bool(re.search(r'<form|<input|password|credit|card|payment', content, re.IGNORECASE))
+        complex_elements = len(re.findall(r'<input|<select|<textarea|<option', content, re.IGNORECASE)) if is_markup else 0
 
         # --- 1. PSYCHOLOGY LAWS ---
         # Hick's Law

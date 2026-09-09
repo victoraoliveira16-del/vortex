@@ -2,7 +2,7 @@
 <footer class="footer" role="contentinfo">
   <div class="footer-container">
     <div class="footer-brand">
-      <img src="/vortex/assets/images/logo.png" alt="Logo MathPlay" class="footer-logo">
+      <img src="/vortex/assets/images/logo-clean.png" alt="Logo MathPlay" class="footer-logo">
       <span>MathPlay Solutions</span>
     </div>
     <p class="footer-copy">&copy; 2026 MathPlay Solutions &middot; TCC SESI 2B &middot; Plataforma Educacional Gamificada</p>

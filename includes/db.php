@@ -1,13 +1,5 @@
 <?php
-// Carrega variáveis sensíveis do .env (nunca versionado)
-$envPath = __DIR__ . '/../.env';
-$_env = file_exists($envPath) ? (parse_ini_file($envPath) ?: []) : [];
-
-define('DB_HOST', $_env['DB_HOST'] ?? '127.0.0.1');
-define('DB_PORT', $_env['DB_PORT'] ?? '3306');
-define('DB_USER', $_env['DB_USER'] ?? 'root');
-define('DB_PASS', $_env['DB_PASS'] ?? '');
-define('DB_NAME', $_env['DB_NAME'] ?? 'mathplay');
+require_once __DIR__ . '/../config.php';
 
 $attempts = [];
 $seen = [];

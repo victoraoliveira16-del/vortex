@@ -25,7 +25,7 @@
   background: var(--bg-card);
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  overflow: hidden;
+  overflow: visible;
   box-shadow: var(--shadow);
 }
 
@@ -38,6 +38,8 @@
 .profile-avatar-wrap {
   padding: 0 1.25rem;
   margin-top: -34px;
+  position: relative;
+  z-index: 2;
 }
 
 .avatar {
@@ -50,9 +52,13 @@
   justify-content: center;
   font-size: 1.6rem;
   font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
   color: #FFFFFF;
   box-shadow: var(--shadow-md);
   flex-shrink: 0;
+  transform: translateY(0);
+  overflow: hidden;
 }
 
 .profile-info {

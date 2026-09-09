@@ -1,15 +1,6 @@
 <?php
 require_once __DIR__ . '/auth.php';
 $pageTitle = $pageTitle ?? 'MathPlay Solutions';
-$pageStyles = $pageStyles ?? match (true) {
-  str_ends_with($_SERVER['SCRIPT_NAME'] ?? '', '/index.php') && str_contains($_SERVER['SCRIPT_NAME'] ?? '', '/games/') => ['games.css'],
-  str_contains($_SERVER['SCRIPT_NAME'] ?? '', '/games/') => ['games.css'],
-  str_contains($_SERVER['SCRIPT_NAME'] ?? '', '/teacher/') => ['teacher.css'],
-  str_ends_with($_SERVER['SCRIPT_NAME'] ?? '', '/login.php') || str_ends_with($_SERVER['SCRIPT_NAME'] ?? '', '/register.php') => ['auth.css'],
-  str_ends_with($_SERVER['SCRIPT_NAME'] ?? '', '/dashboard.php') => ['dashboard.css'],
-  str_ends_with($_SERVER['SCRIPT_NAME'] ?? '', '/profile.php') => ['profile.css'],
-  default => ['landing.css'],
-};
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -18,6 +9,11 @@ $pageStyles = $pageStyles ?? match (true) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="MathPlay Solutions - Plataforma educacional gamificada para Matematica">
   <title><?= htmlspecialchars($pageTitle) ?> — MathPlay Solutions</title>
+  
+  <!-- Favicon / Ícone da Aba -->
+  <link rel="icon" type="image/png" href="/vortex/assets/images/logo-clean.png">
+  <link rel="shortcut icon" type="image/png" href="/vortex/assets/images/logo-clean.png">
+  <link rel="apple-touch-icon" href="/vortex/assets/images/logo-clean.png">
   
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,9 +28,12 @@ $pageStyles = $pageStyles ?? match (true) {
   
   <!-- Modular Custom CSS -->
   <link rel="stylesheet" href="/vortex/assets/css/style.css">
-  <?php foreach ($pageStyles as $pageStyle): ?>
-    <link rel="stylesheet" href="/vortex/assets/css/<?= htmlspecialchars($pageStyle) ?>">
-  <?php endforeach; ?>
+  <link rel="stylesheet" href="/vortex/assets/css/landing.css">
+  <link rel="stylesheet" href="/vortex/assets/css/auth.css">
+  <link rel="stylesheet" href="/vortex/assets/css/dashboard.css">
+  <link rel="stylesheet" href="/vortex/assets/css/profile.css">
+  <link rel="stylesheet" href="/vortex/assets/css/games.css">
+  <link rel="stylesheet" href="/vortex/assets/css/teacher.css">
   <meta name="csrf-token" content="<?= generateCsrfToken() ?>">
 </head>
 <body>
@@ -45,9 +44,9 @@ $pageStyles = $pageStyles ?? match (true) {
     <span class="a11y-label">Acessibilidade:</span>
     <button onclick="adjustFont(-2)" class="a11y-btn" title="Diminuir fonte" aria-label="Diminuir fonte">A-</button>
     <button onclick="adjustFont(2)"  class="a11y-btn" title="Aumentar fonte" aria-label="Aumentar fonte">A+</button>
-    <button onclick="toggleDark()"   class="a11y-btn" id="darkBtn"     title="Modo escuro"><i class="fa-solid fa-moon"></i></button>
-    <button onclick="toggleContrast()" class="a11y-btn" id="contrastBtn" title="Alto contraste"><i class="fa-solid fa-circle-half-stroke"></i></button>
-    <button onclick="toggleDyslexia()" class="a11y-btn" id="dyslexiaBtn" title="Fonte dislexia">Aa</button>
+    <button onclick="toggleDark()"   class="a11y-btn" id="darkBtn"     title="Mudar para tema escuro" aria-label="Mudar para tema escuro"><i class="fa-solid fa-moon" aria-hidden="true"></i></button>
+    <button onclick="toggleContrast()" class="a11y-btn" id="contrastBtn" title="Alto contraste" aria-label="Ativar alto contraste"><i class="fa-solid fa-circle-half-stroke" aria-hidden="true"></i></button>
+    <button onclick="toggleDyslexia()" class="a11y-btn" id="dyslexiaBtn" title="Fonte para dislexia" aria-label="Ativar fonte para dislexia">Aa</button>
   </div>
 </div>
 
@@ -55,7 +54,7 @@ $pageStyles = $pageStyles ?? match (true) {
 <nav class="navbar" role="navigation" aria-label="Navegacao principal">
   <div class="nav-container">
     <a href="/vortex/index.php" class="nav-logo" aria-label="MathPlay - Inicio">
-      <img src="/vortex/assets/images/logo.png" alt="Logo MathPlay" class="nav-logo-img">
+      <img src="/vortex/assets/images/logo-clean.png" alt="Logo MathPlay" class="nav-logo-img">
       <span class="nav-logo-text">MathPlay</span>
     </a>
     <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false" aria-controls="navLinks">

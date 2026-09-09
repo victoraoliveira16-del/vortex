@@ -1,0 +1,10 @@
+<?php
+// Configuracao do banco de dados.
+$envPath = __DIR__ . '/.env';
+$env = file_exists($envPath) ? (parse_ini_file($envPath) ?: []) : [];
+
+define('DB_HOST', $env['DB_HOST'] ?? '127.0.0.1');
+define('DB_PORT', $env['DB_PORT'] ?? '3306');
+define('DB_USER', $env['DB_USER'] ?? 'root');
+define('DB_PASS', $env['DB_PASS'] ?? '');
+define('DB_NAME', $env['DB_NAME'] ?? 'mathplay');

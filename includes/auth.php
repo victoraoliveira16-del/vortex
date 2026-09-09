@@ -12,6 +12,33 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require_once __DIR__ . '/db.php';
 
+function ensureProfilePhotoColumn(): void {
+    global $pdo;
+    static $checked = false;
+    if ($checked) return;
+    $checked = true;
+
+    $column = $pdo->query("SHOW COLUMNS FROM users LIKE 'profile_photo'")->fetch();
+    if (!$column) {
+        $pdo->exec('ALTER TABLE users ADD COLUMN profile_photo VARCHAR(255) NULL');
+    }
+}
+
+function ensureAvatarColorColumn(): void {
+    global $pdo;
+    static $checked = false;
+    if ($checked) return;
+    $checked = true;
+
+    $column = $pdo->query("SHOW COLUMNS FROM users LIKE 'avatar_color'")->fetch();
+    if (!$column) {
+        $pdo->exec("ALTER TABLE users ADD COLUMN avatar_color VARCHAR(7) NOT NULL DEFAULT '#4F46E5'");
+    }
+}
+
+ensureProfilePhotoColumn();
+ensureAvatarColorColumn();
+
 // ─── CSRF ────────────────────────────────────────────────────────────────────
 
 function generateCsrfToken(): string {
@@ -72,7 +99,11 @@ function isLoggedIn(): bool {
 }
 
 function requireLogin(string $redirect = '/vortex/login.php'): void {
-    if (!isLoggedIn()) { header('Location: ' . $redirect); exit; }
+    if (!isLoggedIn() || getCurrentUser() === null) {
+        unset($_SESSION['user_id'], $_SESSION['user_name'], $_SESSION['user_role']);
+        header('Location: ' . $redirect);
+        exit;
+    }
 }
 
 function requireTeacher(): void {
@@ -124,7 +155,7 @@ function registerUser(string $name, string $email, string $password, string $rol
     if (strlen($password) < 6) return ['success' => false, 'message' => 'A senha deve ter pelo menos 6 caracteres.'];
 
     $hash   = password_hash($password, PASSWORD_DEFAULT);
-    $colors = ['#4F46E5','#7C3AED','#DB2777','#059669','#D97706','#DC2626','#0284C7'];
+    $colors = ['#4F46E5','#0D9488','#DB2777','#059669','#D97706','#DC2626','#0284C7'];
     $color  = $colors[array_rand($colors)];
     $s = $pdo->prepare('INSERT INTO users (name, email, password_hash, role, avatar_color) VALUES (?, ?, ?, ?, ?)');
     $s->execute([trim($name), trim($email), $hash, $role, $color]);

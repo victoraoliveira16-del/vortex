@@ -5,7 +5,7 @@ requireTeacher();
 
 // Buscar todos os alunos com suas sessoes agrupadas por jogo
 $stmt = $pdo->prepare('
-  SELECT u.id, u.name, u.email, u.level, u.xp, u.avatar_color,
+  SELECT u.id, u.name, u.email, u.level, u.xp, u.avatar_color, u.profile_photo,
     g.name AS game_name, g.topic, g.slug,
     COUNT(gs.id) AS plays,
     COALESCE(SUM(gs.correct_answers), 0) AS hits,
@@ -29,6 +29,7 @@ foreach ($rows as $r) {
     $byStudent[$r['id']]['level'] = $r['level'];
     $byStudent[$r['id']]['xp'] = $r['xp'];
     $byStudent[$r['id']]['avatar_color'] = $r['avatar_color'] ?? '#4F46E5';
+    $byStudent[$r['id']]['profile_photo'] = $r['profile_photo'] ?? '';
     $byStudent[$r['id']]['games'][] = $r;
 }
 
@@ -67,7 +68,9 @@ require_once __DIR__ . '/../includes/header.php';
     <div class="card-header">
       <div class="align-center" style="display:flex;gap:0.85rem;">
         <div class="avatar avatar-md" style="background:<?= htmlspecialchars($student['avatar_color']) ?>;">
-          <?= mb_strtoupper(mb_substr($student['name'], 0, 1)) ?>
+          <?php if (!empty($student['profile_photo'])): ?><img src="<?= htmlspecialchars($student['profile_photo']) ?>" alt=""><?php else: ?>
+            <?= mb_strtoupper(mb_substr($student['name'], 0, 1)) ?>
+          <?php endif; ?>
         </div>
         <div>
           <div class="student-name-title"><?= htmlspecialchars($student['name']) ?></div>

@@ -52,7 +52,7 @@ require_once __DIR__ . '/includes/header.php';
       <h2 class="auth-visual-title">Comece sua aventura hoje!</h2>
       <p class="auth-visual-text">Junte-se a MathPlay e transforme a forma como voce aprende Matematica. E gratuito, intuitivo e gamificado!</p>
       <div class="auth-visual-features">
-        <div class="auth-visual-feature"><i class="fa-solid fa-circle-check"></i> 2 jogos interativos de alta qualidade</div>
+        <div class="auth-visual-feature"><i class="fa-solid fa-circle-check"></i> 3 jogos interativos de alta qualidade</div>
         <div class="auth-visual-feature"><i class="fa-solid fa-circle-check"></i> Sistema completo de medalhas e XP</div>
         <div class="auth-visual-feature"><i class="fa-solid fa-circle-check"></i> Questoes geradas por IA personalizada</div>
       </div>
@@ -62,7 +62,7 @@ require_once __DIR__ . '/includes/header.php';
   <div class="auth-form-wrap">
     <div class="auth-form-inner">
       <a href="/vortex/index.php" class="auth-logo">
-        <img src="/vortex/assets/images/logo.png" alt="Logo MathPlay" class="auth-logo-img">
+        <img src="/vortex/assets/images/logo-clean.png" alt="Logo MathPlay" class="auth-logo-img">
         <span class="auth-logo-text">MathPlay</span>
       </a>
       <h1 class="auth-title">Criar conta gratis</h1>

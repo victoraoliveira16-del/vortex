@@ -53,7 +53,7 @@ require_once __DIR__ . '/includes/header.php';
   <div class="auth-form-wrap">
     <div class="auth-form-inner">
       <a href="/vortex/index.php" class="auth-logo">
-        <img src="/vortex/assets/images/logo.png" alt="Logo MathPlay" class="auth-logo-img">
+        <img src="/vortex/assets/images/logo-clean.png" alt="Logo MathPlay" class="auth-logo-img">
         <span class="auth-logo-text">MathPlay</span>
       </a>
       <h1 class="auth-title">Entrar na plataforma</h1>

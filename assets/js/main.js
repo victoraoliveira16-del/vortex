@@ -10,25 +10,36 @@
 })();
 
 function toggleDark(){
-  document.body.classList.remove('high-contrast');
+  document.documentElement.classList.remove('high-contrast');
   localStorage.setItem('contrast', '0');
-  var on = document.body.classList.toggle('dark-mode');
+  var contrastBtn = document.getElementById('contrastBtn');
+  if(contrastBtn) contrastBtn.classList.remove('active');
+  var on = document.documentElement.classList.toggle('dark-mode');
   localStorage.setItem('darkMode', on ? '1' : '0');
-  var btn = document.getElementById('darkBtn');
-  if(btn) btn.classList.toggle('active', on);
+  updateThemeButton(on);
 }
 
 function toggleContrast(){
-  document.body.classList.remove('dark-mode');
+  document.documentElement.classList.remove('dark-mode');
   localStorage.setItem('darkMode', '0');
-  var on = document.body.classList.toggle('high-contrast');
+  updateThemeButton(false);
+  var on = document.documentElement.classList.toggle('high-contrast');
   localStorage.setItem('contrast', on ? '1' : '0');
   var btn = document.getElementById('contrastBtn');
   if(btn) btn.classList.toggle('active', on);
 }
 
+function updateThemeButton(isDark){
+  var btn = document.getElementById('darkBtn');
+  if(!btn) return;
+  btn.classList.toggle('active', isDark);
+  btn.title = isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro';
+  btn.setAttribute('aria-label', btn.title);
+  btn.innerHTML = '<i class="fa-solid ' + (isDark ? 'fa-sun' : 'fa-moon') + '" aria-hidden="true"></i>';
+}
+
 function toggleDyslexia(){
-  var on = document.body.classList.toggle('dyslexia-font');
+  var on = document.documentElement.classList.toggle('dyslexia-font');
   localStorage.setItem('dyslexia', on ? '1' : '0');
   var btn = document.getElementById('dyslexiaBtn');
   if(btn) btn.classList.toggle('active', on);
@@ -42,10 +53,7 @@ function adjustFont(delta){
 }
 
 document.addEventListener('DOMContentLoaded', function(){
-  if(localStorage.getItem('darkMode') === '1'){
-    var b = document.getElementById('darkBtn');
-    if(b) b.classList.add('active');
-  }
+  updateThemeButton(localStorage.getItem('darkMode') === '1');
   if(localStorage.getItem('contrast') === '1'){
     var b = document.getElementById('contrastBtn');
     if(b) b.classList.add('active');

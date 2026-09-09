@@ -1,4 +1,4 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Lexend:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Lexend:wght@400;500;600;700&display=swap');
 
 /* ==========================================================================
    CSS CUSTOM PROPERTIES & THEMES
@@ -7,7 +7,7 @@
   --primary: #4F46E5;
   --primary-dark: #3730A3;
   --primary-light: #818CF8;
-  --secondary: #7C3AED;
+  --secondary: #0D9488;
   --accent: #F59E0B;
   --success: #10B981;
   --danger: #EF4444;
@@ -234,7 +234,9 @@ input, select, textarea {
   width: 40px;
   height: 40px;
   object-fit: contain;
-  filter: drop-shadow(0 2px 4px rgba(79, 70, 229, 0.25));
+  display: block;
+  background: transparent;
+  filter: none;
 }
 
 .nav-logo-text {
@@ -783,10 +785,11 @@ input, select, textarea {
 .table-empty-td { text-align: center; padding: 2.5rem; color: var(--text-muted); }
 
 .hero-float-gold   { background: linear-gradient(135deg, #F59E0B, #EF4444); color: #FFFFFF; }
-.hero-float-purple { background: linear-gradient(135deg, #4F46E5, #7C3AED); color: #FFFFFF; }
+.hero-float-indigo { background: linear-gradient(135deg, #4F46E5, #0D9488); color: #FFFFFF; }
 
 .avatar-sm { width: 34px; height: 34px; font-size: 0.85rem; }
 .avatar-md { width: 44px; height: 44px; font-size: 1.1rem; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: block; }
 
 .student-name-title { font-weight: 800; font-size: 1.05rem; }
 .student-meta-sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem; }
@@ -809,3 +812,5 @@ input, select, textarea {
 .game-card-geometry .game-card-gradient  { background: linear-gradient(180deg, rgba(16,185,129,0.1) 0%, rgba(30,64,175,0.97) 100%); }
 .game-card-fractions .game-btn-play { color: var(--danger); }
 .game-card-geometry .game-btn-play  { color: #2563EB; }
+.game-card-mental .game-card-gradient { background: linear-gradient(180deg, rgba(14,165,233,0.1) 0%, rgba(15,118,110,0.97) 100%); }
+.game-card-mental .game-btn-play { color: #0F766E; }
