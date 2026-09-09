@@ -166,8 +166,41 @@ foreach ($questions as $q) {
     $inserted++;
 }
 
-$pdo->prepare('INSERT INTO notifications (user_id, type, title, message) VALUES (?, "ai", "Reforco Personalizado Disponivel", ?)')
-    ->execute([$userId, 'Geradas ' . $inserted . ' questoes de reforco sobre ' . $topic . ' com foco pedagogico!']);
+// Notificar alunos com mensagens personalizadas
+$stmtStudents = $pdo->prepare('
+    SELECT u.id, u.name,
+           COALESCE(SUM(gs.wrong_answers), 0) AS misses,
+           COALESCE(SUM(gs.correct_answers), 0) AS hits
+    FROM users u
+    LEFT JOIN game_sessions gs ON gs.user_id = u.id AND gs.game_id = ?
+    WHERE u.role = "student"
+    GROUP BY u.id, u.name
+');
+$stmtStudents->execute([$gameId]);
+$students = $stmtStudents->fetchAll();
 
-echo json_encode(['success' => true, 'generated' => $inserted]);
+$notifStmt = $pdo->prepare('INSERT INTO notifications (user_id, type, title, message) VALUES (?, "ai", ?, ?)');
+$notifiedCount = 0;
+
+foreach ($students as $stu) {
+    $hasErrors = (int)$stu['misses'] > 0;
+    $title = $hasErrors ? "🎯 Reforço Recomendado: {$topic}" : "✨ Desafio de Fixação IA: {$topic}";
+    $msg   = $hasErrors
+        ? "Identificamos pontos de melhoria em {$topic}. {$inserted} novas questões de reforço preparadas para você dominar o assunto!"
+        : "Novas questões de fixação com IA sobre {$topic} foram liberadas no seu Treino de Reforço!";
+    $notifStmt->execute([(int)$stu['id'], $title, $msg]);
+    $notifiedCount++;
+}
+
+// Confirmar envio para o professor ou usuário atual
+$currentUserRole = $_SESSION['user_role'] ?? '';
+$confirmTitle = 'Reforço Enviado para a Turma';
+$confirmMsg   = "Reforço de {$topic} ativado com sucesso! {$inserted} questões salvas e {$notifiedCount} alunos notificados.";
+$notifStmt->execute([$userId, $confirmTitle, $confirmMsg]);
+
+echo json_encode([
+    'success' => true,
+    'generated' => $inserted,
+    'notified_students' => $notifiedCount
+]);
 

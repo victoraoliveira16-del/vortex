@@ -192,7 +192,8 @@ function checkAndUnlockAchievements(int $userId): array {
     $user = $s->fetch();
     $s = $pdo->prepare('SELECT COUNT(*) AS c FROM game_sessions WHERE user_id = ?');
     $s->execute([$userId]);
-    $gamesPlayed = (int)$s->fetch()['c'];
+    $countRow = $s->fetch();
+    $gamesPlayed = (int)($countRow['c'] ?? 0);
     $checks = [
         'games_played' => $gamesPlayed,
         'xp_total'     => (int)($user['xp'] ?? 0),

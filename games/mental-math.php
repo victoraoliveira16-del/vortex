@@ -85,71 +85,81 @@ require_once __DIR__ . '/../includes/header.php';
     </div>
 
     <!-- Question & CRT Display Area -->
-    <div id="questionArea">
-      <!-- Arcade CRT Expression Screen -->
-      <div class="arcade-screen-bezel">
-        <div class="arcade-screen" id="arcadeScreen">
-          <!-- Pop de Pontuação Flutuante -->
-          <div class="arcade-combo-pop" id="comboPop">+100</div>
+    <div id="questionArea" class="arcade-gameplay-area">
+      <!-- Coluna da Tela e Respostas (Esquerda no PC) -->
+      <div class="arcade-screen-col">
+        <!-- Arcade CRT Expression Screen -->
+        <div class="arcade-screen-bezel">
+          <div class="arcade-screen" id="arcadeScreen">
+            <!-- Pop de Pontuação Flutuante -->
+            <div class="arcade-combo-pop" id="comboPop">+100</div>
 
-          <div class="arcade-prompt-label">Resolva o Cálculo:</div>
-          <div class="calc-expression" id="calcExpr">4 × 5</div>
+            <div class="arcade-prompt-label">
+              <i class="fa-solid fa-calculator"></i> CALCULE RAPIDAMENTE:
+            </div>
+            <div class="calc-expression" id="calcExpr">4 × 5</div>
 
-          <!-- Display de Entrada Numérica -->
-          <div class="arcade-display" id="calcDisplay">
-            <span class="arcade-display-text" id="calcDisplayText"></span>
-            <span class="arcade-cursor"></span>
+            <!-- Display de Entrada Numérica -->
+            <div class="arcade-display" id="calcDisplay">
+              <span class="arcade-display-placeholder" id="calcDisplayPlaceholder">Digite sua resposta...</span>
+              <span class="arcade-display-text" id="calcDisplayText"></span>
+              <span class="arcade-cursor" id="arcadeCursor"></span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Tactile Arcade Controller Keypad (3D) -->
-      <div class="arcade-controller">
-        <div class="calc-keypad" id="calcKeypad">
-          <button type="button" class="arcade-key" onclick="pressKey('1')">1</button>
-          <button type="button" class="arcade-key" onclick="pressKey('2')">2</button>
-          <button type="button" class="arcade-key" onclick="pressKey('3')">3</button>
-
-          <button type="button" class="arcade-key" onclick="pressKey('4')">4</button>
-          <button type="button" class="arcade-key" onclick="pressKey('5')">5</button>
-          <button type="button" class="arcade-key" onclick="pressKey('6')">6</button>
-
-          <button type="button" class="arcade-key" onclick="pressKey('7')">7</button>
-          <button type="button" class="arcade-key" onclick="pressKey('8')">8</button>
-          <button type="button" class="arcade-key" onclick="pressKey('9')">9</button>
-
-          <button type="button" class="arcade-key arcade-key-comma" onclick="pressKey('-')" title="Sinal Negativo">-</button>
-          <button type="button" class="arcade-key" onclick="pressKey('0')">0</button>
-          <button type="button" class="arcade-key arcade-key-backspace" onclick="backspaceKey()" aria-label="Apagar dígito" title="Apagar (Backspace)">
-            <svg width="24" height="20" viewBox="0 0 24 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M7.5 1.5L1.5 10L7.5 18.5H22.5V1.5H7.5Z" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M12 6.5L18 13.5M18 6.5L12 13.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-        </div>
-
-        <!-- Botão Principal de Disparo / Envio -->
-        <button type="button" class="arcade-go-btn" id="goBtn" onclick="submitAnswer()">
-          <span>ENVIAR RESPOSTA</span>
-          <span class="arcade-go-kbd"><kbd>ENTER</kbd></span>
-        </button>
-
-        <!-- Feedback & Explicação -->
-        <div class="feedback-box mt-3" id="feedbackBox">
+        <!-- Feedback & Explicação Didática (Posição Nobre de Alta Visibilidade) -->
+        <div class="feedback-box" id="feedbackBox" role="region" aria-live="assertive">
           <div class="feedback-title" id="feedbackTitle"></div>
           <div class="feedback-explanation" id="feedbackExplanation"></div>
         </div>
 
-        <!-- Barra de Ação (Próxima questão após erro) -->
-        <div class="game-actions-bar mt-3 d-none" id="actionsBar">
-          <button class="arcade-next-btn" onclick="nextQuestion()" id="nextBtn">
-            Próxima Questão <i class="fa-solid fa-arrow-right"></i>
+        <!-- Barra de Ação (Próxima questão / Avançar após erro) -->
+        <div class="game-actions-bar d-none" id="actionsBar">
+          <button type="button" class="arcade-next-btn" onclick="advanceQuestion()" id="nextBtn">
+            <span>Próxima Questão</span>
+            <span class="arcade-go-kbd"><kbd>ENTER</kbd></span>
+            <i class="fa-solid fa-arrow-right"></i>
           </button>
         </div>
+      </div>
 
-        <!-- Dica de Teclado -->
-        <div class="arcade-keyboard-hint">
-          <i class="fa-solid fa-keyboard"></i> Dica: Você pode digitar os números e apertar Enter no teclado!
+      <!-- Coluna de Controles / Teclado (Direita no PC) -->
+      <div class="arcade-controller-col">
+        <div class="arcade-controller" id="arcadeController">
+          <div class="calc-keypad" id="calcKeypad">
+            <button type="button" class="arcade-key" onclick="pressKey('1')">1</button>
+            <button type="button" class="arcade-key" onclick="pressKey('2')">2</button>
+            <button type="button" class="arcade-key" onclick="pressKey('3')">3</button>
+
+            <button type="button" class="arcade-key" onclick="pressKey('4')">4</button>
+            <button type="button" class="arcade-key" onclick="pressKey('5')">5</button>
+            <button type="button" class="arcade-key" onclick="pressKey('6')">6</button>
+
+            <button type="button" class="arcade-key" onclick="pressKey('7')">7</button>
+            <button type="button" class="arcade-key" onclick="pressKey('8')">8</button>
+            <button type="button" class="arcade-key" onclick="pressKey('9')">9</button>
+
+            <button type="button" class="arcade-key arcade-key-comma" onclick="pressKey('-')" title="Sinal Negativo">-</button>
+            <button type="button" class="arcade-key" onclick="pressKey('0')">0</button>
+            <button type="button" class="arcade-key arcade-key-backspace" onclick="backspaceKey()" aria-label="Apagar dígito" title="Apagar (Backspace)">
+              <svg width="24" height="20" viewBox="0 0 24 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M7.5 1.5L1.5 10L7.5 18.5H22.5V1.5H7.5Z" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 6.5L18 13.5M18 6.5L12 13.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Botão Principal de Disparo / Envio -->
+          <button type="button" class="arcade-go-btn" id="goBtn" onclick="submitAnswer()">
+            <span>ENVIAR RESPOSTA</span>
+            <span class="arcade-go-kbd"><kbd>ENTER</kbd></span>
+          </button>
+
+          <!-- Dica de Teclado -->
+          <div class="arcade-keyboard-hint">
+            <i class="fa-solid fa-keyboard"></i> No PC: Você pode digitar números e apertar <strong>ENTER</strong>
+          </div>
         </div>
       </div>
     </div>
@@ -167,6 +177,19 @@ require_once __DIR__ . '/../includes/header.php';
           <i class="fa-solid fa-star star-icon" id="s1"></i>
           <i class="fa-solid fa-star star-icon" id="s2"></i>
           <i class="fa-solid fa-star star-icon" id="s3"></i>
+        </div>
+
+        <!-- Mensagem Motivadora Aleatória -->
+        <div class="arcade-motivation-card" id="motivationCard">
+          <div class="motivation-icon-wrap">
+            <i class="fa-solid fa-wand-magic-sparkles" id="motivationIcon"></i>
+          </div>
+          <div class="motivation-content">
+            <div class="motivation-title">
+              <i class="fa-solid fa-lightbulb text-warning"></i> Mensagem para Você
+            </div>
+            <p class="motivation-text" id="motivationText"></p>
+          </div>
         </div>
 
         <div class="result-stats">
@@ -368,6 +391,7 @@ async function loadQuestion(){
   }
 
   document.getElementById('feedbackBox').className = 'feedback-box';
+  document.getElementById('feedbackBox').innerHTML = '';
   document.getElementById('actionsBar').classList.add('d-none');
   document.getElementById('goBtn').classList.remove('d-none');
 
@@ -398,7 +422,9 @@ function backspaceKey(){
 
 function updateDisplay(){
   var textEl = document.getElementById('calcDisplayText');
+  var placeholderEl = document.getElementById('calcDisplayPlaceholder');
   if(textEl) textEl.textContent = currentVal;
+  if(placeholderEl) placeholderEl.style.display = currentVal.length === 0 ? 'inline' : 'none';
 }
 
 function timeExpired(){
@@ -456,7 +482,7 @@ async function submitAnswer(overrideVal){
       setTimeout(function(){ popEl.classList.remove('show'); }, 600);
     }
 
-    showFeedback(true, 'Correto! +' + earned + ' pts' + (multiplier > 1 ? ' (' + multiplier + 'x Combo!)' : ''), explanation || 'Excelente velocidade mental!');
+    showFeedbackCorrect('Correto! +' + earned + ' pts' + (multiplier > 1 ? ' (' + multiplier + 'x Combo!)' : ''), explanation);
     showToast('Acertou! +' + earned + ' pontos', 'success');
 
     setTimeout(nextQuestion, 550);
@@ -475,24 +501,35 @@ async function submitAnswer(overrideVal){
       setTimeout(function(){ cabinetEl.classList.remove('screen-shake'); }, 420);
     }
 
-    var msg = (chosen === 'TIMEOUT') ? 'Tempo Esgotado! (15s)' : 'Resposta Incorreta!';
+    var titleMsg = (chosen === 'TIMEOUT') ? 'Tempo Esgotado! (15s)' : 'Resposta Incorreta!';
+    var isLastLife = (lives <= 0);
+    var lifeNotice = isLastLife ? 'Fim das 3 vidas!' : (lives === 1 ? 'Resta apenas 1 vida!' : 'Restam ' + lives + ' vidas!');
 
-    if(lives <= 0){
-      showFeedback(false, msg, (explanation || ('O resultado correto era: ' + correctLetter)) + ' 💔 Fim das 3 vidas!');
-      showToast('Fim de jogo! Suas 3 vidas acabaram.', 'error');
-      setTimeout(function(){
-        finishGame(true);
-      }, 1500);
-      return;
-    } else {
-      var lifeText = lives === 1 ? 'Resta apenas 1 vida!' : 'Restam ' + lives + ' vidas!';
-      showFeedback(false, msg, (explanation || ('O resultado correto era: ' + correctLetter)) + ' — ' + lifeText);
-      showToast('Errou! ' + lifeText, 'error');
-      document.getElementById('actionsBar').classList.remove('d-none');
+    showFeedbackWrong(titleMsg, chosen, correctLetter, explanation, lifeNotice, isLastLife);
+    showToast((chosen === 'TIMEOUT' ? 'Tempo esgotado!' : 'Errou!') + ' ' + lifeNotice, 'error');
+
+    // Mostra o botão de avanço imediatamente abaixo do gabarito revelado
+    var actionsBar = document.getElementById('actionsBar');
+    var nextBtn = document.getElementById('nextBtn');
+    if(actionsBar && nextBtn){
+      actionsBar.classList.remove('d-none');
+      if(isLastLife){
+        nextBtn.innerHTML = '<span>Ver Meu Resultado</span> <span class="arcade-go-kbd"><kbd>ENTER</kbd></span> <i class="fa-solid fa-trophy"></i>';
+      } else {
+        nextBtn.innerHTML = '<span>Próxima Questão</span> <span class="arcade-go-kbd"><kbd>ENTER</kbd></span> <i class="fa-solid fa-arrow-right"></i>';
+      }
     }
   }
 
   document.getElementById('score').textContent = score;
+}
+
+function advanceQuestion(){
+  if(lives <= 0){
+    finishGame(true);
+  } else {
+    nextQuestion();
+  }
 }
 
 function updateStreakUI(){
@@ -512,11 +549,50 @@ function updateStreakUI(){
   }
 }
 
-function showFeedback(isCorrect, title, explanation){
+function showFeedbackCorrect(title, explanationText){
   var box = document.getElementById('feedbackBox');
-  box.className = 'feedback-box ' + (isCorrect ? 'feedback-correct' : 'feedback-wrong') + ' show';
-  document.getElementById('feedbackTitle').innerHTML = '<i class="fa-solid ' + (isCorrect ? 'fa-circle-check' : 'fa-circle-xmark') + '"></i> ' + title;
-  document.getElementById('feedbackExplanation').textContent = explanation;
+  box.className = 'feedback-box feedback-correct show';
+  var html = '<div class="feedback-correct-header">' +
+      '<div class="feedback-correct-title"><i class="fa-solid fa-circle-check"></i> ' + title + '</div>' +
+    '</div>';
+  if(explanationText){
+    html += '<div class="feedback-pedagogical-card correct-mode">' +
+        '<div class="pedagogical-text">' + explanationText + '</div>' +
+      '</div>';
+  }
+  box.innerHTML = html;
+}
+
+function showFeedbackWrong(title, chosenVal, correctVal, explanationText, lifeText, isGameOver){
+  var box = document.getElementById('feedbackBox');
+  box.className = 'feedback-box feedback-wrong show';
+  
+  var chosenDisplay = chosenVal === 'TIMEOUT' ? '⏰ Esgotado' : (chosenVal !== '' ? chosenVal : 'Vazio');
+
+  var html = '<div class="feedback-wrong-header">' +
+      '<div class="feedback-wrong-title"><i class="fa-solid fa-circle-xmark"></i> ' + title + '</div>' +
+      '<div class="feedback-life-pill ' + (isGameOver ? 'pill-game-over' : '') + '"><i class="fa-solid fa-heart-pulse"></i> ' + lifeText + '</div>' +
+    '</div>' +
+    '<div class="feedback-answer-comparison">' +
+      '<div class="comparison-card comp-wrong">' +
+        '<div class="comparison-tag"><i class="fa-solid fa-xmark"></i> Sua Resposta</div>' +
+        '<div class="comparison-number">' + chosenDisplay + '</div>' +
+      '</div>' +
+      '<div class="comparison-arrow"><i class="fa-solid fa-arrow-right"></i></div>' +
+      '<div class="comparison-card comp-correct">' +
+        '<div class="comparison-tag"><i class="fa-solid fa-circle-check"></i> Resposta Correta</div>' +
+        '<div class="comparison-number">' + correctVal + '</div>' +
+      '</div>' +
+    '</div>';
+
+  if(explanationText){
+    html += '<div class="feedback-pedagogical-card">' +
+        '<div class="pedagogical-tag"><i class="fa-solid fa-lightbulb"></i> Como pensar rápido nesta conta:</div>' +
+        '<div class="pedagogical-text">' + explanationText + '</div>' +
+      '</div>';
+  }
+
+  box.innerHTML = html;
 }
 
 async function createNextQuestion(lvl){
@@ -625,6 +701,30 @@ function finishGame(isGameOver){
   document.getElementById('rWrong').textContent = wrong;
   document.getElementById('rMaxStreak').textContent = 'x' + maxStreak;
 
+  // Texto motivador aleatório para o aluno
+  var motivationalQuotes = [
+    { text: "O cérebro é como um músculo: quanto mais você treina o raciocínio rápido, mais ágil e afiado ele fica!", icon: "fa-brain" },
+    { text: "Erros são degraus indispensáveis no caminho da maestria. Cada conta tentada expande seu raciocínio!", icon: "fa-seedling" },
+    { text: "A consistência é o grande segredo dos gênios. Continue praticando e seus cálculos serão quase automáticos!", icon: "fa-fire" },
+    { text: "Impressionante agilidade! O foco mental que você desenvolve aqui fortalece sua mente para todos os desafios da vida.", icon: "fa-bolt" },
+    { text: "Não compare sua velocidade com a dos outros, compare com quem você era ontem. Você está evoluindo a cada partida!", icon: "fa-chart-line" },
+    { text: "Matemática não é decorar regras prontas, é aprender a pensar com clareza e estratégia. Você está no caminho certo!", icon: "fa-lightbulb" },
+    { text: "Grandes mestres do cálculo começaram errando e persistindo. Sua determinação é o seu maior superpoder!", icon: "fa-shield-halved" },
+    { text: "Reflexos rápidos e concentração total! Cada desafio superado cria conexões neurais novinhas no seu cérebro.", icon: "fa-wand-magic-sparkles" },
+    { text: "Sua mente é veloz e cheia de potencial. Respire fundo, celebre sua evolução de hoje e volte para bater seu recorde!", icon: "fa-trophy" },
+    { text: "Todo especialista um dia foi um iniciante que não desistiu. Continue treinando e surpreenda a si mesmo!", icon: "fa-rocket" }
+  ];
+
+  var quoteEl = document.getElementById('motivationText');
+  var iconEl = document.getElementById('motivationIcon');
+  if(quoteEl && motivationalQuotes.length > 0){
+    var randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
+    quoteEl.textContent = '“' + randomQuote.text + '”';
+    if(iconEl && randomQuote.icon){
+      iconEl.className = 'fa-solid ' + randomQuote.icon;
+    }
+  }
+
   // Sistema de Estrelas:
   // 3 Estrelas: 12+ acertos e >= 70% de precisão
   // 2 Estrelas: 6+ acertos e >= 50% de precisão
@@ -687,7 +787,7 @@ document.addEventListener('keydown', function(e){
   } else if(e.key === 'Enter'){
     if(answered){
       var actionsVisible = !document.getElementById('actionsBar').classList.contains('d-none');
-      if(actionsVisible) nextQuestion();
+      if(actionsVisible) advanceQuestion();
     } else {
       var goBtn = document.getElementById('goBtn');
       if(goBtn){ goBtn.classList.add('pressed'); setTimeout(function(){ goBtn.classList.remove('pressed'); }, 100); }

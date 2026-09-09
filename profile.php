@@ -46,6 +46,7 @@ $xpPct = min(100, ($user['xp'] % 100));
 
 $stmt = $pdo->prepare('SELECT COUNT(*) AS total, SUM(score) AS pts, SUM(correct_answers) AS hits, SUM(wrong_answers) AS misses FROM game_sessions WHERE user_id=?');
 $stmt->execute([$user['id']]);
+$stats = $stmt->fetch() ?: [];
 $hits = (int)($stats['hits'] ?? 0);
 $misses = (int)($stats['misses'] ?? 0);
 $accuracy = ($hits + $misses) > 0 ? round($hits / ($hits + $misses) * 100) : 0;
@@ -103,7 +104,7 @@ require_once __DIR__ . '/includes/header.php';
     <div class="stat-card">
       <div class="stat-icon stat-icon-primary"><i class="fa-solid fa-gamepad"></i></div>
       <div>
-        <div class="stat-value"><?= (int)$stats['total'] ?></div>
+        <div class="stat-value"><?= (int)($stats['total'] ?? 0) ?></div>
         <div class="stat-label">Partidas</div>
       </div>
     </div>
