@@ -36,15 +36,22 @@ $stmt = $pdo->prepare('SELECT * FROM learning_trail WHERE user_id=?');
 $stmt->execute([$user['id']]);
 $trails = $stmt->fetchAll();
 
-// Questões de reforço com IA disponíveis
-$stmtReinforce = $pdo->query('
-    SELECT q.topic, COUNT(*) as qty, MAX(q.game_id) as game_id
+// Questões de reforço com IA disponíveis (gerais ou direcionadas para este aluno)
+$stmtReinforce = $pdo->prepare('
+    SELECT q.topic, COUNT(*) as qty, MAX(q.game_id) as game_id,
+           SUM(CASE WHEN q.target_user_id = ? THEN 1 ELSE 0 END) as targeted_qty
     FROM questions q
-    WHERE q.is_ai_generated = 1
+    WHERE q.is_ai_generated = 1 AND (q.target_user_id IS NULL OR q.target_user_id = ?)
     GROUP BY q.topic
 ');
+$stmtReinforce->execute([$user['id'], $user['id']]);
 $reinforcementTopics = $stmtReinforce->fetchAll();
 $totalReinforceQuestions = array_sum(array_column($reinforcementTopics, 'qty'));
+
+$targetedRecoveryCount = 0;
+foreach ($reinforcementTopics as $rt) {
+    $targetedRecoveryCount += (int)($rt['targeted_qty'] ?? 0);
+}
 
 // Identificar tópicos onde o aluno teve erros acumulados
 $stmtGaps = $pdo->prepare('
@@ -209,6 +216,21 @@ require_once __DIR__ . '/includes/header.php';
       </div>
 
       <div class="reinforce-banner-body">
+        <?php if ($targetedRecoveryCount > 0): ?>
+          <div class="mb-3" style="background: rgba(16, 185, 129, 0.12); border: 1.5px solid rgba(16, 185, 129, 0.35); border-radius: var(--radius-sm); padding: 0.85rem 1.15rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <i class="fa-solid fa-bullseye text-success" style="font-size: 1.3rem;"></i>
+              <div>
+                <strong style="color: var(--text);">Recuperação Individual Atribuída pelo Professor!</strong>
+                <div style="font-size: 0.825rem; color: var(--text-muted);">Você possui <?= $targetedRecoveryCount ?> <?= $targetedRecoveryCount == 1 ? 'questão de reforço formulada' : 'questões de reforço formuladas' ?> especialmente para o seu desempenho.</div>
+              </div>
+            </div>
+            <a href="/vortex/games/reinforcement.php" class="btn btn-sm btn-success" style="white-space: nowrap;">
+              <i class="fa-solid fa-play"></i> Praticar Agora
+            </a>
+          </div>
+        <?php endif; ?>
+
         <?php if (!empty($studentGaps)): ?>
           <div class="reinforce-topics-label">
             <i class="fa-solid fa-triangle-exclamation text-amber"></i> Tópicos prioritários para recuperação:

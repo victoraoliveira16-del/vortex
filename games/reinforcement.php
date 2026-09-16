@@ -6,16 +6,38 @@ requireLogin();
 $user = getCurrentUser();
 $selectedTopic = isset($_GET['topic']) ? trim($_GET['topic']) : '';
 
-// Buscar tópicos disponíveis de reforço com IA
-$stmtTopics = $pdo->query('SELECT topic, COUNT(*) as qty FROM questions WHERE is_ai_generated = 1 GROUP BY topic ORDER BY topic ASC');
+// Buscar tópicos disponíveis de reforço com IA (gerais da turma OU direcionados a este aluno)
+$stmtTopics = $pdo->prepare('
+    SELECT topic, COUNT(*) as qty 
+    FROM questions 
+    WHERE is_ai_generated = 1 AND (target_user_id IS NULL OR target_user_id = ?)
+    GROUP BY topic 
+    ORDER BY topic ASC
+');
+$stmtTopics->execute([$user['id']]);
 $availableTopics = $stmtTopics->fetchAll();
 
 // Se nenhum tópico foi especificado e há tópicos disponíveis, pode filtrar ou trazer todos
+// Priorizando questões direcionadas ao aluno se houver!
 if ($selectedTopic !== '') {
-    $stmtQ = $pdo->prepare('SELECT * FROM questions WHERE is_ai_generated = 1 AND topic = ? ORDER BY id DESC LIMIT 10');
-    $stmtQ->execute([$selectedTopic]);
+    $stmtQ = $pdo->prepare('
+        SELECT * FROM questions 
+        WHERE is_ai_generated = 1 
+          AND topic = ? 
+          AND (target_user_id IS NULL OR target_user_id = ?)
+        ORDER BY (target_user_id = ?) DESC, id DESC 
+        LIMIT 10
+    ');
+    $stmtQ->execute([$selectedTopic, $user['id'], $user['id']]);
 } else {
-    $stmtQ = $pdo->query('SELECT * FROM questions WHERE is_ai_generated = 1 ORDER BY id DESC LIMIT 10');
+    $stmtQ = $pdo->prepare('
+        SELECT * FROM questions 
+        WHERE is_ai_generated = 1 
+          AND (target_user_id IS NULL OR target_user_id = ?)
+        ORDER BY (target_user_id = ?) DESC, id DESC 
+        LIMIT 10
+    ');
+    $stmtQ->execute([$user['id'], $user['id']]);
 }
 $questions = $stmtQ->fetchAll();
 
@@ -196,7 +218,7 @@ require_once __DIR__ . '/../includes/header.php';
 </div>
 
 <script>
-var questions = <?= json_encode(array_values(array_map(function($q){
+var questions = <?= json_encode(array_values(array_map(function($q) use ($user){
     return [
         'id'            => (int)$q['id'],
         'game_id'       => (int)($q['game_id'] ?? 1),
@@ -207,6 +229,7 @@ var questions = <?= json_encode(array_values(array_map(function($q){
         'option_c'      => $q['option_c'],
         'option_d'      => $q['option_d'],
         'difficulty'    => $q['difficulty'] ?? 'easy',
+        'is_targeted'   => !empty($q['target_user_id']) && (int)$q['target_user_id'] === (int)$user['id'],
     ];
 }, $questions))) ?>;
 
@@ -225,7 +248,12 @@ function loadQuestion(){
 
   document.getElementById('questionText').textContent = q.question_text;
   document.getElementById('qLabel').textContent = 'Questão ' + (current + 1) + ' de ' + questions.length;
-  document.getElementById('qTopic').textContent = q.topic;
+  
+  if(q.is_targeted){
+    document.getElementById('qTopic').innerHTML = q.topic + ' <span class="badge-targeted"><i class="fa-solid fa-bullseye"></i> Atribuído para você</span>';
+  } else {
+    document.getElementById('qTopic').textContent = q.topic;
+  }
   document.getElementById('qnum').textContent = (current + 1) + '/' + questions.length;
 
   var pct = Math.round((current / questions.length) * 100);

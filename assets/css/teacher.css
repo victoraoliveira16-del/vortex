@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    TEACHER DASHBOARD & REPORTS (teacher.css)
    ========================================================================== */
 
@@ -128,6 +128,47 @@
   color: var(--text);
 }
 
+/* Section Header with Hint */
+.section-header-flex {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.section-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Table Button - Apply Recovery */
+.btn-recovery-trigger {
+  background: rgba(79, 70, 229, 0.08);
+  color: var(--primary);
+  border: 1.5px solid rgba(79, 70, 229, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.75rem;
+  font-size: 0.775rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.btn-recovery-trigger:hover {
+  background: var(--primary);
+  color: #FFFFFF;
+  border-color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
 /* AI Question Generator Card */
 .ai-generator-card {
   background: linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, rgba(124, 58, 237, 0.08) 100%);
@@ -135,10 +176,20 @@
   border-radius: var(--radius);
   padding: 2.25rem;
   margin-top: 2.5rem;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ai-generator-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
 }
 
 .ai-generator-title {
-  font-size: 1.25rem;
+  font-size: 1.3rem;
   font-weight: 800;
   margin-bottom: 0.45rem;
   display: flex;
@@ -150,25 +201,140 @@
 .ai-generator-desc {
   color: var(--text-muted);
   font-size: 0.9rem;
-  margin-bottom: 1.5rem;
   line-height: 1.6;
+  max-width: 780px;
 }
 
-.ai-generator-form {
-  display: flex;
-  gap: 0.85rem;
+.ai-mode-pill {
+  display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
+  gap: 0.45rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: rgba(79, 70, 229, 0.12);
+  color: var(--primary);
+  border: 1px solid rgba(79, 70, 229, 0.25);
 }
 
-.ai-select {
-  max-width: 240px;
-  min-height: 44px;
+.ai-mode-pill.individual {
+  background: rgba(16, 185, 129, 0.14);
+  color: var(--success);
+  border-color: rgba(16, 185, 129, 0.35);
 }
 
-.ai-input-id {
-  max-width: 110px;
-  min-height: 44px;
+/* Dynamic Target Student Alert Notice */
+.target-student-notice {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 0.85rem 1.15rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  animation: slideIn 0.3s ease;
+}
+
+.target-notice-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.target-notice-icon {
+  font-size: 1.25rem;
+  color: var(--success);
+}
+
+.target-student-notice strong {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.target-student-notice span {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.btn-ghost-danger {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-ghost-danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Form Grid */
+.ai-generator-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 1.25rem;
+  align-items: flex-end;
+}
+
+@media (max-width: 900px) {
+  .ai-generator-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ai-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.ai-field-label {
+  font-size: 0.825rem;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.ai-select-full {
+  width: 100%;
+  min-height: 46px;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.9rem;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.btn-generate-ai {
+  min-height: 46px;
+  padding: 0 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Highlight pulse animation when clicking from table */
+@keyframes highlightGlow {
+  0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.6); transform: scale(1); }
+  50% { box-shadow: 0 0 0 12px rgba(79, 70, 229, 0.25); transform: scale(1.01); }
+  100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); transform: scale(1); }
+}
+
+.highlight-pulse {
+  animation: highlightGlow 1.2s ease-in-out;
 }
 
 /* Status Badges in Reports */
@@ -219,6 +385,140 @@
   align-items: center;
   gap: 0.25rem;
   margin-top: 0.15rem;
+}
+
+/* ==========================================================================
+   MONTHLY AUDIT BANNER & CHIPS
+   ========================================================================== */
+.monthly-audit-banner {
+  background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  margin-bottom: 2.25rem;
+  transition: var(--transition);
+}
+
+.monthly-audit-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.monthly-audit-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 1.15rem;
+}
+
+.monthly-audit-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.45rem;
+  flex-shrink: 0;
+}
+
+.monthly-audit-icon.success {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--success);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.monthly-audit-icon.warning {
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--accent);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.monthly-audit-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.monthly-audit-heading {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 0.2rem;
+}
+
+.monthly-audit-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.monthly-audit-list {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--border);
+}
+
+.monthly-audit-list-title {
+  font-size: 0.825rem;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.65rem;
+}
+
+.monthly-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.monthly-chip {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.825rem;
+  color: var(--text);
+}
+
+.monthly-chip-topic {
+  font-size: 0.75rem;
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.btn-chip-action {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger);
+  border: none;
+  border-radius: 4px;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-chip-action:hover {
+  background: var(--danger);
+  color: #FFFFFF;
 }
 
 /* Print Stylesheet */
