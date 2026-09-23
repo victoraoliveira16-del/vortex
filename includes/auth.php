@@ -98,6 +98,10 @@ function isLoggedIn(): bool {
     return isset($_SESSION['user_id']);
 }
 
+function isTeacher(): bool {
+    return isLoggedIn() && ($_SESSION['user_role'] ?? '') === 'teacher';
+}
+
 function requireLogin(string $redirect = '/vortex/login.php'): void {
     if (!isLoggedIn() || getCurrentUser() === null) {
         unset($_SESSION['user_id'], $_SESSION['user_name'], $_SESSION['user_role']);
