@@ -36,35 +36,9 @@ $stmt = $pdo->prepare('SELECT * FROM learning_trail WHERE user_id=?');
 $stmt->execute([$user['id']]);
 $trails = $stmt->fetchAll();
 
-// Questões de reforço com IA disponíveis (gerais ou direcionadas para este aluno)
-$stmtReinforce = $pdo->prepare('
-    SELECT q.topic, COUNT(*) as qty, MAX(q.game_id) as game_id,
-           SUM(CASE WHEN q.target_user_id = ? THEN 1 ELSE 0 END) as targeted_qty
-    FROM questions q
-    WHERE q.is_ai_generated = 1 AND (q.target_user_id IS NULL OR q.target_user_id = ?)
-    GROUP BY q.topic
-');
-$stmtReinforce->execute([$user['id'], $user['id']]);
-$reinforcementTopics = $stmtReinforce->fetchAll();
-$totalReinforceQuestions = array_sum(array_column($reinforcementTopics, 'qty'));
-
-$targetedRecoveryCount = 0;
-foreach ($reinforcementTopics as $rt) {
-    $targetedRecoveryCount += (int)($rt['targeted_qty'] ?? 0);
-}
-
-// Identificar tópicos onde o aluno teve erros acumulados
-$stmtGaps = $pdo->prepare('
-    SELECT g.topic, SUM(gs.wrong_answers) as misses, SUM(gs.correct_answers) as hits
-    FROM game_sessions gs
-    JOIN games g ON g.id = gs.game_id
-    WHERE gs.user_id = ?
-    GROUP BY g.topic
-    HAVING misses > 0
-    ORDER BY misses DESC
-');
-$stmtGaps->execute([$user['id']]);
-$studentGaps = $stmtGaps->fetchAll();
+$pendingRecoveriesStmt = $pdo->prepare("SELECT COUNT(*) FROM recoveries WHERE student_id = ? AND status = 'pending'");
+$pendingRecoveriesStmt->execute([(int)$user['id']]);
+$pendingRecoveriesCount = (int)$pendingRecoveriesStmt->fetchColumn();
 
 require_once __DIR__ . '/includes/header.php';
 ?>
@@ -101,19 +75,21 @@ require_once __DIR__ . '/includes/header.php';
       </div>
       <div class="card-body">
         <div class="flex-col gap-md">
-          <a href="/vortex/games/reinforcement.php" class="quick-game-btn quick-game-reinforce">
+          <?php if ($user['role'] === 'student'): ?>
+            <a href="<?= BASE_URL ?>/recovery.php" class="quick-game-btn quick-game-reinforce">
+              <div class="quick-game-icon"><i class="fa-solid fa-clipboard-check"></i></div>
+              <span>Minhas Recuperações</span>
+            </a>
+          <?php endif; ?>
+          <a href="<?= BASE_URL ?>/games/mental-math.php" class="quick-game-btn quick-game-fractions">
             <div class="quick-game-icon"><i class="fa-solid fa-brain"></i></div>
-            <span>Treino de Reforço</span>
-          </a>
-          <a href="/vortex/games/mental-math.php" class="quick-game-btn quick-game-fractions">
-            <div class="quick-game-icon"><i class="fa-solid fa-calculator"></i></div>
             <span>Calculadora Mental</span>
           </a>
-          <a href="/vortex/games/fractions.php" class="quick-game-btn quick-game-fractions">
+          <a href="<?= BASE_URL ?>/games/fractions.php" class="quick-game-btn quick-game-fractions">
             <div class="quick-game-icon"><i class="fa-solid fa-utensils"></i></div>
             <span>Chef das Fracoes</span>
           </a>
-          <a href="/vortex/games/geometry.php" class="quick-game-btn quick-game-geometry">
+          <a href="<?= BASE_URL ?>/games/geometry.php" class="quick-game-btn quick-game-geometry">
             <div class="quick-game-icon"><i class="fa-solid fa-city"></i></div>
             <span>Construtor de Cidades</span>
           </a>
@@ -137,9 +113,9 @@ require_once __DIR__ . '/includes/header.php';
             <div>
               <div class="notification-title"><?= htmlspecialchars($n['title']) ?></div>
               <div class="notification-msg"><?= htmlspecialchars($n['message']) ?></div>
-              <?php if ($n['type'] === 'ai'): ?>
-                <a href="/vortex/games/reinforcement.php" class="notif-action-link">
-                  <i class="fa-solid fa-play"></i> Praticar Reforço
+              <?php if ($user['role'] === 'student' && $n['type'] === 'ai'): ?>
+                <a href="<?= BASE_URL ?>/recovery.php" class="notif-action-link">
+                  <i class="fa-solid fa-play"></i> Ver recuperação
                 </a>
               <?php endif; ?>
             </div>
@@ -190,81 +166,79 @@ require_once __DIR__ . '/includes/header.php';
       </div>
     </div>
 
-    <!-- MISSÃO DE REFORÇO COM IA -->
-    <div class="reinforce-banner-card mb-4">
-      <div class="reinforce-banner-header">
-        <div class="reinforce-banner-title">
-          <div class="reinforce-pulse-icon">
-            <i class="fa-solid fa-brain"></i>
+    <!-- JOGOS E DESAFIOS (ACESSO DIRETO PARA O ALUNO) -->
+    <div class="mb-4">
+      <div class="flex-row justify-between items-center mb-3">
+        <h2 class="section-heading m-0"><i class="fa-solid fa-gamepad text-primary"></i> Jogos e Desafios</h2>
+        <a href="<?= BASE_URL ?>/games/index.php" class="btn btn-secondary btn-sm">
+          <i class="fa-solid fa-layer-group"></i> Ver Catálogo Completo
+        </a>
+      </div>
+      <div class="dashboard-games-strip">
+        <div class="dash-game-card">
+          <div class="dash-game-icon-box text-danger">
+            <i class="fa-solid fa-utensils"></i>
           </div>
-          <div>
-            <h2 class="reinforce-heading">Treino de Reforço com IA</h2>
-            <p class="reinforce-subheading">
-              <?php if (!empty($studentGaps)): ?>
-                Identificamos conteúdos com pontos de dúvida para você revisar e dominar com explicações passo a passo.
-              <?php else: ?>
-                Pratique questões de fixação pedagógica geradas por IA para acelerar seu ganho de XP e domínio matemático.
-              <?php endif; ?>
-            </p>
+          <div class="dash-game-details">
+            <h3 class="dash-game-title">Chef das Frações</h3>
+            <p class="dash-game-sub">Domine frações e proporções cozinhando pratos deliciosos.</p>
           </div>
+          <a href="<?= BASE_URL ?>/games/fractions.php" class="btn btn-primary btn-sm">
+            <i class="fa-solid fa-play"></i> Jogar Agora
+          </a>
         </div>
-        <div class="reinforce-banner-action">
-          <a href="/vortex/games/reinforcement.php" class="btn btn-primary btn-glow">
-            <i class="fa-solid fa-crosshairs"></i> Iniciar Reforço
+
+        <div class="dash-game-card">
+          <div class="dash-game-icon-box text-blue">
+            <i class="fa-solid fa-city"></i>
+          </div>
+          <div class="dash-game-details">
+            <h3 class="dash-game-title">Construtor de Cidades</h3>
+            <p class="dash-game-sub">Erga edifícios calculando áreas e perímetros geométricos.</p>
+          </div>
+          <a href="<?= BASE_URL ?>/games/geometry.php" class="btn btn-primary btn-sm">
+            <i class="fa-solid fa-play"></i> Jogar Agora
+          </a>
+        </div>
+
+        <div class="dash-game-card">
+          <div class="dash-game-icon-box text-warning">
+            <i class="fa-solid fa-bolt"></i>
+          </div>
+          <div class="dash-game-details">
+            <h3 class="dash-game-title">Calculadora Mental</h3>
+            <p class="dash-game-sub">Desafio dinâmico de 15 segundos para treinar agilidade mental.</p>
+          </div>
+          <a href="<?= BASE_URL ?>/games/mental-math.php" class="btn btn-primary btn-sm">
+            <i class="fa-solid fa-play"></i> Jogar Agora
           </a>
         </div>
       </div>
+    </div>
 
-      <div class="reinforce-banner-body">
-        <?php if ($targetedRecoveryCount > 0): ?>
-          <div class="mb-3" style="background: rgba(16, 185, 129, 0.12); border: 1.5px solid rgba(16, 185, 129, 0.35); border-radius: var(--radius-sm); padding: 0.85rem 1.15rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
-            <div style="display: flex; align-items: center; gap: 0.75rem;">
-              <i class="fa-solid fa-bullseye text-success" style="font-size: 1.3rem;"></i>
-              <div>
-                <strong style="color: var(--text);">Recuperação Individual Atribuída pelo Professor!</strong>
-                <div style="font-size: 0.825rem; color: var(--text-muted);">Você possui <?= $targetedRecoveryCount ?> <?= $targetedRecoveryCount == 1 ? 'questão de reforço formulada' : 'questões de reforço formuladas' ?> especialmente para o seu desempenho.</div>
-              </div>
+    <?php if ($user['role'] === 'student'): ?>
+      <div class="reinforce-banner-card mb-4">
+        <div class="reinforce-banner-header">
+          <div class="reinforce-banner-title">
+            <div class="reinforce-pulse-icon"><i class="fa-solid fa-clipboard-check"></i></div>
+            <div>
+              <h2 class="reinforce-heading">Recuperações</h2>
+              <p class="reinforce-subheading">
+                <?= $pendingRecoveriesCount > 0
+                  ? 'Você tem ' . $pendingRecoveriesCount . ' recuperação(ões) pendente(s) enviada(s) pelo professor.'
+                  : 'Você não tem nenhuma recuperação para fazer no momento.' ?>
+              </p>
             </div>
-            <a href="/vortex/games/reinforcement.php" class="btn btn-sm btn-success" style="white-space: nowrap;">
-              <i class="fa-solid fa-play"></i> Praticar Agora
+          </div>
+          <div class="reinforce-banner-action">
+            <a href="<?= BASE_URL ?>/recovery.php" class="btn btn-primary btn-glow">
+              <i class="fa-solid fa-arrow-right"></i> Ver recuperações
             </a>
           </div>
-        <?php endif; ?>
-
-        <?php if (!empty($studentGaps)): ?>
-          <div class="reinforce-topics-label">
-            <i class="fa-solid fa-triangle-exclamation text-amber"></i> Tópicos prioritários para recuperação:
-          </div>
-          <div class="reinforce-chips-list">
-            <?php foreach ($studentGaps as $gap): ?>
-              <a href="/vortex/games/reinforcement.php?topic=<?= urlencode($gap['topic']) ?>" class="reinforce-chip warning">
-                <span class="chip-name"><?= htmlspecialchars($gap['topic']) ?></span>
-                <span class="chip-count"><?= (int)$gap['misses'] ?> <?= $gap['misses'] == 1 ? 'erro recente' : 'erros recentes' ?></span>
-                <i class="fa-solid fa-arrow-right chip-arrow"></i>
-              </a>
-            <?php endforeach; ?>
-          </div>
-        <?php elseif ($totalReinforceQuestions > 0): ?>
-          <div class="reinforce-topics-label">
-            <i class="fa-solid fa-circle-check text-success"></i> Conteúdos com questões de fixação prontas:
-          </div>
-          <div class="reinforce-chips-list">
-            <?php foreach ($reinforcementTopics as $rt): ?>
-              <a href="/vortex/games/reinforcement.php?topic=<?= urlencode($rt['topic']) ?>" class="reinforce-chip">
-                <span class="chip-name"><?= htmlspecialchars($rt['topic']) ?></span>
-                <span class="chip-count"><?= (int)$rt['qty'] ?> questões</span>
-                <i class="fa-solid fa-arrow-right chip-arrow"></i>
-              </a>
-            <?php endforeach; ?>
-          </div>
-        <?php else: ?>
-          <div class="reinforce-empty-banner">
-            <i class="fa-solid fa-circle-check text-success"></i>
-            <span>Excelente desempenho! Nenhum erro crítico pendente. Você pode treinar qualquer conteúdo nos Jogos Rápidos.</span>
-          </div>
-        <?php endif; ?>
+        </div>
       </div>
-    </div>
+    <?php endif; ?>
+
 
     <!-- CONQUISTAS -->
     <div>
@@ -361,7 +335,7 @@ require_once __DIR__ . '/includes/header.php';
       </div>
       <h3 class="empty-state-title">Ainda nao jogou nenhuma partida!</h3>
       <p class="empty-state-text">Escolha um dos jogos interativos e comece a pontuar para desbloquear conquistas.</p>
-      <a href="/vortex/games/index.php" class="btn btn-primary">
+      <a href="<?= BASE_URL ?>/games/index.php" class="btn btn-primary">
         <i class="fa-solid fa-play"></i> Explorar Jogos
       </a>
     </div>

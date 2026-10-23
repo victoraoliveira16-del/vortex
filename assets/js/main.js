@@ -1,4 +1,8 @@
 // MathPlay Solutions — main.js
+var BASE_URL = (typeof window.BASE_URL !== 'undefined') ? window.BASE_URL : (function(){
+  var p = window.location.pathname;
+  return p.indexOf('/vortex') === 0 ? '/vortex' : '';
+})();
 
 // Preferences initialization (IIFE)
 (function applyPrefs(){
@@ -188,7 +192,7 @@ async function checkAnswer(gameId, questionId, chosen, hintUsed){
   var timeout = setTimeout(function(){ controller.abort(); }, 10000);
   try {
     var token = getCsrfToken();
-    var res = await fetch('/vortex/api/check_answer.php', {
+    var res = await fetch(BASE_URL + '/api/check_answer.php', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -219,7 +223,7 @@ async function checkAnswer(gameId, questionId, chosen, hintUsed){
 async function saveScore(gameId, timeSpent, difficulty, fallbackScore, fallbackCorrect, fallbackWrong){
   try {
     var token = getCsrfToken();
-    var res = await fetch('/vortex/api/save_score.php', {
+    var res = await fetch(BASE_URL + '/api/save_score.php', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -238,11 +242,115 @@ async function saveScore(gameId, timeSpent, difficulty, fallbackScore, fallbackC
     var data = await res.json();
     if(data && data.success){
       animateXP(data.xp_gained);
-      showToast('Pontuacao e XP computados com sucesso!', 'success');
+      displayPhaseRewards(data);
+      showToast('Fase concluída! +' + data.xp_gained + ' XP ganhos!', 'success');
     }
     return data;
   } catch(e) {
     showToast('Erro ao registrar pontuacao no servidor.', 'error');
     return null;
   }
+}
+
+// Exibe cartão de recompensas da fase concluída e celebrações
+function displayPhaseRewards(data){
+  if(!data || !data.success) return;
+
+  var resultArea = document.getElementById('resultArea');
+  if(!resultArea) return;
+
+  // Remove qualquer card de recompensa anterior
+  var oldCard = resultArea.querySelector('.phase-reward-card');
+  if(oldCard) oldCard.remove();
+
+  var card = document.createElement('div');
+  card.className = 'phase-reward-card';
+
+  var bonusScoreHtml = '';
+  if(data.bonus_score && data.bonus_score > 0){
+    bonusScoreHtml = '<div class="phase-reward-item">' +
+      '<span class="reward-tag"><i class="fa-solid fa-trophy text-warning"></i> Bônus de Pontuação:</span>' +
+      '<span class="reward-val text-warning">+' + data.bonus_score + ' pts</span>' +
+    '</div>';
+  }
+
+  var starsLabel = (data.stars === 3) ? '3 Estrelas ⭐⭐⭐' : ((data.stars === 2) ? '2 Estrelas ⭐⭐' : '1 Estrela ⭐');
+
+  card.innerHTML = 
+    '<div class="phase-reward-header">' +
+      '<i class="fa-solid fa-gift"></i>' +
+      '<span>Recompensas da Fase Concluída</span>' +
+    '</div>' +
+    '<div class="phase-reward-body">' +
+      '<div class="phase-reward-item">' +
+        '<span class="reward-tag"><i class="fa-solid fa-flag-checkered text-info"></i> Conclusão da Fase:</span>' +
+        '<span class="reward-val text-info">+' + (data.base_xp || 50) + ' XP</span>' +
+      '</div>' +
+      '<div class="phase-reward-item">' +
+        '<span class="reward-tag"><i class="fa-solid fa-star text-warning"></i> Bônus Desempenho (' + starsLabel + '):</span>' +
+        '<span class="reward-val text-warning">+' + (data.bonus_xp || 0) + ' XP</span>' +
+      '</div>' +
+      bonusScoreHtml +
+      '<div class="phase-reward-item phase-reward-total">' +
+        '<span>Total de XP Ganho:</span>' +
+        '<span class="reward-total-badge">+' + (data.xp_gained || 0) + ' XP</span>' +
+      '</div>' +
+    '</div>';
+
+  // Insere logo antes das ações finais ou no final das estatísticas
+  var actions = resultArea.querySelector('.result-actions');
+  if(actions && actions.parentNode){
+    actions.parentNode.insertBefore(card, actions);
+  } else {
+    resultArea.appendChild(card);
+  }
+
+  // Se subiu de nível, dispara o modal comemorativo de Level Up
+  if(data.level_up){
+    setTimeout(function(){
+      showLevelUpModal(data.level);
+    }, 600);
+  }
+
+  // Notifica conquistas desbloqueadas
+  if(data.achievements && data.achievements.length > 0){
+    data.achievements.forEach(function(ach, i){
+      setTimeout(function(){
+        showToast('🏆 Conquista Desbloqueada: ' + ach.name + '!', 'success', 6000);
+      }, 1200 + (i * 800));
+    });
+  }
+}
+
+// Modal comemorativo de Level Up
+function showLevelUpModal(newLevel){
+  var existing = document.querySelector('.level-up-overlay');
+  if(existing) existing.remove();
+
+  var overlay = document.createElement('div');
+  overlay.className = 'level-up-overlay';
+
+  // Gera confetes decorativos coloridos
+  var colors = ['#F59E0B', '#10B981', '#3B82F6', '#EF4444', '#EC4899', '#06B6D4'];
+  var confettiHtml = '';
+  for(var i = 0; i < 24; i++){
+    var left = Math.random() * 95;
+    var delay = (Math.random() * 1.5).toFixed(2);
+    var color = colors[i % colors.length];
+    confettiHtml += '<div class="confetti-particle" style="left:' + left + '%; background:' + color + '; animation-delay:' + delay + 's;"></div>';
+  }
+
+  overlay.innerHTML = 
+    '<div class="level-up-modal">' +
+      confettiHtml +
+      '<div class="level-up-crown-icon"><i class="fa-solid fa-crown"></i></div>' +
+      '<div class="level-up-title">SUBIU DE NÍVEL!</div>' +
+      '<div class="level-up-badge">NÍVEL ' + newLevel + '</div>' +
+      '<p class="level-up-text">Parabéns pelo seu esforço! Suas habilidades matemáticas subiram de patamar!</p>' +
+      '<button class="level-up-btn" onclick="this.closest(\'.level-up-overlay\').remove()">' +
+        '<i class="fa-solid fa-bolt"></i> Continuar Explorando' +
+      '</button>' +
+    '</div>';
+
+  document.body.appendChild(overlay);
 }

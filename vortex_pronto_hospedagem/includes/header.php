@@ -1,0 +1,121 @@
+<?php
+require_once __DIR__ . '/auth.php';
+$pageTitle = $pageTitle ?? 'MathPlay Solutions';
+?>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="MathPlay Solutions - Plataforma educacional gamificada para Matematica">
+  <title><?= htmlspecialchars($pageTitle) ?> — MathPlay Solutions</title>
+  
+  <!-- Favicon / Ícone da Aba -->
+  <link rel="icon" type="image/png" href="<?= BASE_URL ?>/assets/images/logo-clean.png">
+  <link rel="shortcut icon" type="image/png" href="<?= BASE_URL ?>/assets/images/logo-clean.png">
+  <link rel="apple-touch-icon" href="<?= BASE_URL ?>/assets/images/logo-clean.png">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Lexend:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- AOS Animations -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css">
+  
+  <!-- Modular Custom CSS -->
+  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css">
+  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/landing.css">
+  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/auth.css">
+  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/dashboard.css">
+  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/profile.css">
+  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/games.css">
+  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/teacher.css">
+  <meta name="csrf-token" content="<?= generateCsrfToken() ?>">
+  <?php
+    $justLoggedIn = !empty($_SESSION['just_logged_in']);
+    if ($justLoggedIn) {
+        unset($_SESSION['just_logged_in']);
+    }
+  ?>
+  <script>
+    window.BASE_URL = <?= json_encode(BASE_URL) ?>;
+    (function checkSessionPersistence() {
+      var isLoggedIn = <?= isset($_SESSION['user_id']) ? 'true' : 'false' ?>;
+      var rememberMe = <?= !empty($_SESSION['remember_me']) ? 'true' : 'false' ?>;
+      var justLoggedIn = <?= $justLoggedIn ? 'true' : 'false' ?>;
+
+      if (isLoggedIn) {
+        if (!rememberMe && !justLoggedIn) {
+          // Se o usuário optou por NÃO manter o login e abriu nova sessão/aba após fechar o navegador
+          if (!sessionStorage.getItem('vortex_active_session')) {
+            window.location.replace(window.BASE_URL + '/includes/logout.php');
+            return;
+          }
+        }
+        sessionStorage.setItem('vortex_active_session', '1');
+      } else {
+        sessionStorage.removeItem('vortex_active_session');
+      }
+    })();
+  </script>
+</head>
+<body>
+
+<!-- Accessibility Bar -->
+<div class="a11y-bar" role="toolbar" aria-label="Ferramentas de Acessibilidade">
+  <div class="a11y-inner">
+    <span class="a11y-label">Acessibilidade:</span>
+    <button onclick="adjustFont(-2)" class="a11y-btn" title="Diminuir fonte" aria-label="Diminuir fonte">A-</button>
+    <button onclick="adjustFont(2)"  class="a11y-btn" title="Aumentar fonte" aria-label="Aumentar fonte">A+</button>
+    <button onclick="toggleDark()"   class="a11y-btn" id="darkBtn"     title="Mudar para tema escuro" aria-label="Mudar para tema escuro"><i class="fa-solid fa-moon" aria-hidden="true"></i></button>
+    <button onclick="toggleContrast()" class="a11y-btn" id="contrastBtn" title="Alto contraste" aria-label="Ativar alto contraste"><i class="fa-solid fa-circle-half-stroke" aria-hidden="true"></i></button>
+    <button onclick="toggleDyslexia()" class="a11y-btn" id="dyslexiaBtn" title="Fonte para dislexia" aria-label="Ativar fonte para dislexia">Aa</button>
+  </div>
+</div>
+
+<!-- Navigation Bar -->
+<nav class="navbar" role="navigation" aria-label="Navegacao principal">
+  <div class="nav-container">
+    <a href="<?= BASE_URL ?>/index.php" class="nav-logo" aria-label="MathPlay - Inicio">
+      <img src="<?= BASE_URL ?>/assets/images/logo-clean.png" alt="Logo MathPlay" class="nav-logo-img">
+      <span class="nav-logo-text">MathPlay</span>
+    </a>
+    <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false" aria-controls="navLinks">
+      <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-links" id="navLinks" role="menubar">
+      <li role="none"><a href="<?= BASE_URL ?>/index.php" class="nav-link" role="menuitem"><i class="fa-solid fa-house"></i> Home</a></li>
+      <?php if (isset($_SESSION['user_id'])): ?>
+        <li role="none"><a href="<?= BASE_URL ?>/games/index.php" class="nav-link" role="menuitem"><i class="fa-solid fa-gamepad"></i> Jogos</a></li>
+        <li role="none"><a href="<?= BASE_URL ?>/dashboard.php" class="nav-link" role="menuitem"><i class="fa-solid fa-chart-line"></i> Dashboard</a></li>
+        <?php if (($_SESSION['user_role'] ?? '') === 'student'):
+          $pendingRecoveriesStmt = $pdo->prepare("SELECT COUNT(*) FROM recoveries WHERE student_id = ? AND status = 'pending'");
+          $pendingRecoveriesStmt->execute([(int)$_SESSION['user_id']]);
+          $pendingRecoveriesCount = (int)$pendingRecoveriesStmt->fetchColumn();
+        ?>
+          <li role="none">
+            <a href="<?= BASE_URL ?>/recovery.php" class="nav-link" role="menuitem">
+              <i class="fa-solid fa-clipboard-check"></i> Recuperação
+              <?php if ($pendingRecoveriesCount > 0): ?>
+                <span class="nav-recovery-badge" aria-label="<?= $pendingRecoveriesCount ?> pendente(s)"><?= $pendingRecoveriesCount ?></span>
+              <?php endif; ?>
+            </a>
+          </li>
+        <?php endif; ?>
+        <li role="none"><a href="<?= BASE_URL ?>/profile.php"   class="nav-link" role="menuitem"><i class="fa-solid fa-user"></i> Perfil</a></li>
+        <?php if (($_SESSION['user_role'] ?? '') === 'teacher'): ?>
+          <li role="none"><a href="<?= BASE_URL ?>/teacher/dashboard.php" class="nav-link nav-teacher" role="menuitem"><i class="fa-solid fa-chalkboard-user"></i> Professor</a></li>
+        <?php endif; ?>
+        <li role="none"><a href="<?= BASE_URL ?>/includes/logout.php" onclick="sessionStorage.removeItem('vortex_active_session');" class="nav-link nav-logout" role="menuitem"><i class="fa-solid fa-right-from-bracket"></i> Sair</a></li>
+      <?php else: ?>
+        <li role="none"><a href="<?= BASE_URL ?>/login.php" class="btn btn-primary btn-sm" role="menuitem"><i class="fa-solid fa-right-to-bracket"></i> Entrar</a></li>
+      <?php endif; ?>
+    </ul>
+  </div>
+</nav>
+
+<main id="main-content" tabindex="-1">

@@ -1,0 +1,12 @@
+# MathPlay Solutions - Apache Configuration
+Options -Indexes
+DirectoryIndex index.php
+
+# Proteger arquivos sensíveis
+<FilesMatch "^\.(env|git)">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Charset padrão
+AddDefaultCharset UTF-8

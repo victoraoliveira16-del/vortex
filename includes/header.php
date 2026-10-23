@@ -11,9 +11,9 @@ $pageTitle = $pageTitle ?? 'MathPlay Solutions';
   <title><?= htmlspecialchars($pageTitle) ?> — MathPlay Solutions</title>
   
   <!-- Favicon / Ícone da Aba -->
-  <link rel="icon" type="image/png" href="/vortex/assets/images/logo-clean.png">
-  <link rel="shortcut icon" type="image/png" href="/vortex/assets/images/logo-clean.png">
-  <link rel="apple-touch-icon" href="/vortex/assets/images/logo-clean.png">
+  <link rel="icon" type="image/png" href="<?= BASE_URL ?>/assets/images/logo-clean.png">
+  <link rel="shortcut icon" type="image/png" href="<?= BASE_URL ?>/assets/images/logo-clean.png">
+  <link rel="apple-touch-icon" href="<?= BASE_URL ?>/assets/images/logo-clean.png">
   
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -27,14 +27,41 @@ $pageTitle = $pageTitle ?? 'MathPlay Solutions';
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css">
   
   <!-- Modular Custom CSS -->
-  <link rel="stylesheet" href="/vortex/assets/css/style.css">
-  <link rel="stylesheet" href="/vortex/assets/css/landing.css">
-  <link rel="stylesheet" href="/vortex/assets/css/auth.css">
-  <link rel="stylesheet" href="/vortex/assets/css/dashboard.css">
-  <link rel="stylesheet" href="/vortex/assets/css/profile.css">
-  <link rel="stylesheet" href="/vortex/assets/css/games.css">
-  <link rel="stylesheet" href="/vortex/assets/css/teacher.css">
+  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css">
+  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/landing.css">
+  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/auth.css">
+  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/dashboard.css">
+  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/profile.css">
+  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/games.css">
+  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/teacher.css">
   <meta name="csrf-token" content="<?= generateCsrfToken() ?>">
+  <?php
+    $justLoggedIn = !empty($_SESSION['just_logged_in']);
+    if ($justLoggedIn) {
+        unset($_SESSION['just_logged_in']);
+    }
+  ?>
+  <script>
+    window.BASE_URL = <?= json_encode(BASE_URL) ?>;
+    (function checkSessionPersistence() {
+      var isLoggedIn = <?= isset($_SESSION['user_id']) ? 'true' : 'false' ?>;
+      var rememberMe = <?= !empty($_SESSION['remember_me']) ? 'true' : 'false' ?>;
+      var justLoggedIn = <?= $justLoggedIn ? 'true' : 'false' ?>;
+
+      if (isLoggedIn) {
+        if (!rememberMe && !justLoggedIn) {
+          // Se o usuário optou por NÃO manter o login e abriu nova sessão/aba após fechar o navegador
+          if (!sessionStorage.getItem('vortex_active_session')) {
+            window.location.replace(window.BASE_URL + '/includes/logout.php');
+            return;
+          }
+        }
+        sessionStorage.setItem('vortex_active_session', '1');
+      } else {
+        sessionStorage.removeItem('vortex_active_session');
+      }
+    })();
+  </script>
 </head>
 <body>
 
@@ -53,25 +80,39 @@ $pageTitle = $pageTitle ?? 'MathPlay Solutions';
 <!-- Navigation Bar -->
 <nav class="navbar" role="navigation" aria-label="Navegacao principal">
   <div class="nav-container">
-    <a href="/vortex/index.php" class="nav-logo" aria-label="MathPlay - Inicio">
-      <img src="/vortex/assets/images/logo-clean.png" alt="Logo MathPlay" class="nav-logo-img">
+    <a href="<?= BASE_URL ?>/index.php" class="nav-logo" aria-label="MathPlay - Inicio">
+      <img src="<?= BASE_URL ?>/assets/images/logo-clean.png" alt="Logo MathPlay" class="nav-logo-img">
       <span class="nav-logo-text">MathPlay</span>
     </a>
     <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false" aria-controls="navLinks">
       <span></span><span></span><span></span>
     </button>
     <ul class="nav-links" id="navLinks" role="menubar">
-      <li role="none"><a href="/vortex/index.php"       class="nav-link" role="menuitem"><i class="fa-solid fa-house"></i> Home</a></li>
-      <li role="none"><a href="/vortex/games/index.php" class="nav-link" role="menuitem"><i class="fa-solid fa-gamepad"></i> Jogos</a></li>
+      <li role="none"><a href="<?= BASE_URL ?>/index.php" class="nav-link" role="menuitem"><i class="fa-solid fa-house"></i> Home</a></li>
       <?php if (isset($_SESSION['user_id'])): ?>
-        <li role="none"><a href="/vortex/dashboard.php" class="nav-link" role="menuitem"><i class="fa-solid fa-chart-line"></i> Dashboard</a></li>
-        <li role="none"><a href="/vortex/profile.php"   class="nav-link" role="menuitem"><i class="fa-solid fa-user"></i> Perfil</a></li>
-        <?php if (($_SESSION['user_role'] ?? '') === 'teacher'): ?>
-          <li role="none"><a href="/vortex/teacher/dashboard.php" class="nav-link nav-teacher" role="menuitem"><i class="fa-solid fa-chalkboard-user"></i> Professor</a></li>
+        <li role="none"><a href="<?= BASE_URL ?>/games/index.php" class="nav-link" role="menuitem"><i class="fa-solid fa-gamepad"></i> Jogos</a></li>
+        <li role="none"><a href="<?= BASE_URL ?>/dashboard.php" class="nav-link" role="menuitem"><i class="fa-solid fa-chart-line"></i> Dashboard</a></li>
+        <?php if (($_SESSION['user_role'] ?? '') === 'student'):
+          $pendingRecoveriesStmt = $pdo->prepare("SELECT COUNT(*) FROM recoveries WHERE student_id = ? AND status = 'pending'");
+          $pendingRecoveriesStmt->execute([(int)$_SESSION['user_id']]);
+          $pendingRecoveriesCount = (int)$pendingRecoveriesStmt->fetchColumn();
+        ?>
+          <li role="none">
+            <a href="<?= BASE_URL ?>/recovery.php" class="nav-link" role="menuitem">
+              <i class="fa-solid fa-clipboard-check"></i> Recuperação
+              <?php if ($pendingRecoveriesCount > 0): ?>
+                <span class="nav-recovery-badge" aria-label="<?= $pendingRecoveriesCount ?> pendente(s)"><?= $pendingRecoveriesCount ?></span>
+              <?php endif; ?>
+            </a>
+          </li>
         <?php endif; ?>
-        <li role="none"><a href="/vortex/includes/logout.php" class="nav-link nav-logout" role="menuitem"><i class="fa-solid fa-right-from-bracket"></i> Sair</a></li>
+        <li role="none"><a href="<?= BASE_URL ?>/profile.php"   class="nav-link" role="menuitem"><i class="fa-solid fa-user"></i> Perfil</a></li>
+        <?php if (($_SESSION['user_role'] ?? '') === 'teacher'): ?>
+          <li role="none"><a href="<?= BASE_URL ?>/teacher/dashboard.php" class="nav-link nav-teacher" role="menuitem"><i class="fa-solid fa-chalkboard-user"></i> Professor</a></li>
+        <?php endif; ?>
+        <li role="none"><a href="<?= BASE_URL ?>/includes/logout.php" onclick="sessionStorage.removeItem('vortex_active_session');" class="nav-link nav-logout" role="menuitem"><i class="fa-solid fa-right-from-bracket"></i> Sair</a></li>
       <?php else: ?>
-        <li role="none"><a href="/vortex/login.php" class="btn btn-primary btn-sm" role="menuitem"><i class="fa-solid fa-right-to-bracket"></i> Entrar</a></li>
+        <li role="none"><a href="<?= BASE_URL ?>/login.php" class="btn btn-primary btn-sm" role="menuitem"><i class="fa-solid fa-right-to-bracket"></i> Entrar</a></li>
       <?php endif; ?>
     </ul>
   </div>

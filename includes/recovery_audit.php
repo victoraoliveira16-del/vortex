@@ -50,7 +50,7 @@ function runMonthlyRecoveryAudit(PDO $pdo, ?string $targetMonth = null, bool $fo
     $stmtSessions->execute([$auditMonth]);
     $rows = $stmtSessions->fetchAll(PDO::FETCH_ASSOC);
 
-    // Se não houver partidas no mês do calendário exato, busca nos últimos 30 dias móveis
+    // Se não houver partidas no mês do calendário exato, busca nos últimos 30 dias móveis; se ainda vazio, busca histórico global dos alunos
     if (empty($rows)) {
         $stmtSessions30 = $pdo->query("
             SELECT 
@@ -74,6 +74,31 @@ function runMonthlyRecoveryAudit(PDO $pdo, ?string $targetMonth = null, bool $fo
             ORDER BY u.name, g.name
         ");
         $rows = $stmtSessions30->fetchAll(PDO::FETCH_ASSOC);
+
+        // Se ainda estiver vazio (ex: dados de teste de meses anteriores), audita as sessões existentes
+        if (empty($rows)) {
+            $stmtSessionsAll = $pdo->query("
+                SELECT 
+                    u.id AS student_id,
+                    u.name AS student_name,
+                    u.email AS student_email,
+                    g.id AS game_id,
+                    g.name AS game_name,
+                    g.topic AS topic,
+                    COUNT(gs.id) AS total_sessions,
+                    COALESCE(SUM(gs.correct_answers), 0) AS total_correct,
+                    COALESCE(SUM(gs.wrong_answers), 0) AS total_wrong,
+                    COALESCE(AVG(gs.score), 0) AS avg_score,
+                    MAX(gs.played_at) AS last_played
+                FROM users u
+                JOIN game_sessions gs ON gs.user_id = u.id
+                JOIN games g ON g.id = gs.game_id
+                WHERE u.role = 'student'
+                GROUP BY u.id, g.id
+                ORDER BY u.name, g.name
+            ");
+            $rows = $stmtSessionsAll->fetchAll(PDO::FETCH_ASSOC);
+        }
     }
 
     // 3. Agrupar e avaliar cada aluno
@@ -113,19 +138,17 @@ function runMonthlyRecoveryAudit(PDO $pdo, ?string $targetMonth = null, bool $fo
 
     $inRecoveryList = [];
 
-    // Preparar statements para notificações e questões automáticas
+    // Preparar statements para notificações e recuperações individuais.
     $notifStmt = $pdo->prepare('INSERT INTO notifications (user_id, type, title, message) VALUES (?, ?, ?, ?)');
-    $checkQuestStmt = $pdo->prepare('
-        SELECT COUNT(*) FROM questions 
-        WHERE is_ai_generated = 1 
-          AND target_user_id = ? 
-          AND topic = ? 
-          AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-    ');
+    $pendingRecoveryStmt = $pdo->prepare("SELECT id FROM recoveries WHERE student_id = ? AND topic = ? AND status = 'pending' LIMIT 1");
+    $insertRecoveryStmt = $pdo->prepare("
+        INSERT INTO recoveries (student_id, teacher_id, topic, game_id, status)
+        VALUES (?, NULL, ?, ?, 'pending')
+    ");
     $insertQuestStmt = $pdo->prepare('
         INSERT INTO questions 
-        (game_id, topic, question_text, option_a, option_b, option_c, option_d, correct_answer, explanation, difficulty, is_ai_generated, target_user_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, "easy", 1, ?)
+        (game_id, topic, question_text, option_a, option_b, option_c, option_d, correct_answer, explanation, difficulty, is_ai_generated, target_user_id, recovery_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, "easy", 1, ?, ?)
     ');
 
     foreach ($studentsMap as $sid => $stu) {
@@ -150,31 +173,40 @@ function runMonthlyRecoveryAudit(PDO $pdo, ?string $targetMonth = null, bool $fo
                 'game_id'          => $worstTopic['game_id']
             ];
 
-            // A) Notificar o aluno sobre a recuperação mensal
-            $msgStudent = "No fechamento mensal ({$auditMonth}), seu aproveitamento em {$worstTopic['topic']} foi de {$worstTopic['accuracy']}%. Liberamos questões de reforço no seu painel para você recuperar sua média!";
-            $notifStmt->execute([$sid, 'ai', "📅 Auditoria Mensal: Recuperação em {$worstTopic['topic']}", $msgStudent]);
-
-            // B) Gerar questões automáticas de recuperação caso ainda não existam no mês
-            $checkQuestStmt->execute([$sid, $worstTopic['topic']]);
-            $hasQuestions = (int)$checkQuestStmt->fetchColumn() > 0;
-
-            if (!$hasQuestions) {
-                // Inserir 3 questões pedagógicas sob medida para o aluno
-                $sampleQuestions = getMonthlyRecoveryFallbackQuestions($worstTopic['topic'], $stu['name']);
-                foreach ($sampleQuestions as $q) {
-                    $insertQuestStmt->execute([
-                        $worstTopic['game_id'],
-                        $worstTopic['topic'],
-                        $q['pergunta'],
-                        $q['opcao_a'],
-                        $q['opcao_b'],
-                        $q['opcao_c'],
-                        $q['opcao_d'],
-                        $q['resposta_correta'],
-                        $q['explicacao'],
-                        $sid
-                    ]);
+            $sampleQuestions = getMonthlyRecoveryFallbackQuestions($worstTopic['topic'], $stu['name']);
+            $pdo->beginTransaction();
+            try {
+                $lockStudentStmt = $pdo->prepare('SELECT id FROM users WHERE id = ? FOR UPDATE');
+                $lockStudentStmt->execute([$sid]);
+                $lockStudentStmt->fetchColumn();
+                $pendingRecoveryStmt->execute([$sid, $worstTopic['topic']]);
+                if (!$pendingRecoveryStmt->fetchColumn()) {
+                    $insertRecoveryStmt->execute([$sid, $worstTopic['topic'], $worstTopic['game_id']]);
+                    $recoveryId = (int)$pdo->lastInsertId();
+                    foreach ($sampleQuestions as $q) {
+                        $insertQuestStmt->execute([
+                            $worstTopic['game_id'],
+                            $worstTopic['topic'],
+                            $q['pergunta'],
+                            $q['opcao_a'],
+                            $q['opcao_b'],
+                            $q['opcao_c'],
+                            $q['opcao_d'],
+                            $q['resposta_correta'],
+                            $q['explicacao'],
+                            $sid,
+                            $recoveryId,
+                        ]);
+                    }
+                    $msgStudent = "No fechamento mensal ({$auditMonth}), seu aproveitamento em {$worstTopic['topic']} foi de {$worstTopic['accuracy']}%. Uma recuperação individual com " . count($sampleQuestions) . " questões foi liberada na aba Recuperação.";
+                    $notifStmt->execute([$sid, 'ai', "Auditoria mensal: recuperação em {$worstTopic['topic']}", $msgStudent]);
                 }
+                $pdo->commit();
+            } catch (Throwable $e) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                throw $e;
             }
         }
     }

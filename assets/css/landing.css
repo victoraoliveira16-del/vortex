@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    LANDING PAGE STYLES (landing.css)
    ========================================================================== */
 
@@ -375,13 +375,22 @@
   height: 60px;
   border-radius: 16px;
   overflow: hidden;
-  border: 3px solid rgba(255, 255, 255, 0.85);
+  border: 3px solid rgba(255, 255, 255, 0.9);
   margin-bottom: 1.25rem;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
-  background: var(--bg-card);
+  background: #FFFFFF !important;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.game-card-icon-wrap i {
+  font-family: "Font Awesome 6 Free" !important;
+  font-weight: 900 !important;
+  font-style: normal !important;
+  font-size: 1.75rem !important;
+  line-height: 1 !important;
+  display: inline-block !important;
 }
 
 .game-card-icon-img {

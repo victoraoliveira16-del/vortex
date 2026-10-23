@@ -2,7 +2,7 @@
 <footer class="footer" role="contentinfo">
   <div class="footer-container">
     <div class="footer-brand">
-      <img src="/vortex/assets/images/logo-clean.png" alt="Logo MathPlay" class="footer-logo">
+      <img src="<?= BASE_URL ?>/assets/images/logo-clean.png" alt="Logo MathPlay" class="footer-logo">
       <span>MathPlay Solutions</span>
     </div>
     <p class="footer-copy">&copy; 2026 MathPlay Solutions &middot; TCC SESI 2B &middot; Plataforma Educacional Gamificada</p>
@@ -15,7 +15,7 @@
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <!-- Main JS -->
-<script src="/vortex/assets/js/main.js"></script>
+<script src="<?= BASE_URL ?>/assets/js/main.js"></script>
 <script>AOS.init({duration:700,once:true,offset:60});</script>
 </body>
 </html>

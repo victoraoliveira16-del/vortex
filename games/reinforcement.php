@@ -3,62 +3,42 @@ $pageTitle = 'Missão de Reforço com IA';
 require_once __DIR__ . '/../includes/auth.php';
 requireLogin();
 
+if (($_SESSION['user_role'] ?? '') !== 'student') {
+    http_response_code(403);
+    exit('Esta página está disponível apenas para alunos.');
+}
+
 $user = getCurrentUser();
-$selectedTopic = isset($_GET['topic']) ? trim($_GET['topic']) : '';
+$rawRecoveryId = $_GET['recovery_id'] ?? '';
+if ($rawRecoveryId === '') {
+    header('Location: ' . BASE_URL . '/recovery.php');
+    exit;
+}
+$recoveryId = filter_var($rawRecoveryId, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+if ($recoveryId === false) {
+    http_response_code(400);
+    exit('Identificador de recuperação inválido.');
+}
 
-// Buscar tópicos disponíveis de reforço com IA (gerais da turma OU direcionados a este aluno)
-$stmtTopics = $pdo->prepare('
-    SELECT topic, COUNT(*) as qty 
-    FROM questions 
-    WHERE is_ai_generated = 1 AND (target_user_id IS NULL OR target_user_id = ?)
-    GROUP BY topic 
-    ORDER BY topic ASC
+$stmt = $pdo->prepare("SELECT r.*, t.name AS teacher_name FROM recoveries r LEFT JOIN users t ON t.id = r.teacher_id WHERE r.id = ? AND r.student_id = ? AND r.status = 'pending'");
+$stmt->execute([$recoveryId, (int)$user['id']]);
+$recovery = $stmt->fetch();
+if (!$recovery) {
+    http_response_code(403);
+    exit('Esta recuperação não está disponível para sua conta.');
+}
+
+$selectedTopic = $recovery['topic'];
+$activeGameId = (int)$recovery['game_id'];
+unset($_SESSION['game_answers'][$activeGameId]);
+$stmtQ = $pdo->prepare('
+    SELECT id, game_id, topic, question_text, option_a, option_b, option_c, option_d, difficulty, target_user_id
+    FROM questions
+    WHERE recovery_id = ? AND target_user_id = ?
+    ORDER BY id
 ');
-$stmtTopics->execute([$user['id']]);
-$availableTopics = $stmtTopics->fetchAll();
-
-// Se nenhum tópico foi especificado e há tópicos disponíveis, pode filtrar ou trazer todos
-// Priorizando questões direcionadas ao aluno se houver!
-if ($selectedTopic !== '') {
-    $stmtQ = $pdo->prepare('
-        SELECT * FROM questions 
-        WHERE is_ai_generated = 1 
-          AND topic = ? 
-          AND (target_user_id IS NULL OR target_user_id = ?)
-        ORDER BY (target_user_id = ?) DESC, id DESC 
-        LIMIT 10
-    ');
-    $stmtQ->execute([$selectedTopic, $user['id'], $user['id']]);
-} else {
-    $stmtQ = $pdo->prepare('
-        SELECT * FROM questions 
-        WHERE is_ai_generated = 1 
-          AND (target_user_id IS NULL OR target_user_id = ?)
-        ORDER BY (target_user_id = ?) DESC, id DESC 
-        LIMIT 10
-    ');
-    $stmtQ->execute([$user['id'], $user['id']]);
-}
+$stmtQ->execute([$recoveryId, (int)$user['id']]);
 $questions = $stmtQ->fetchAll();
-
-// Se não houver questões de reforço ainda, buscar questões gerais para não deixar o aluno sem treino
-$isFallbackRegular = false;
-if (empty($questions)) {
-    $isFallbackRegular = true;
-    if ($selectedTopic !== '') {
-        $stmtQ = $pdo->prepare('SELECT * FROM questions WHERE topic = ? ORDER BY RAND() LIMIT 8');
-        $stmtQ->execute([$selectedTopic]);
-    } else {
-        $stmtQ = $pdo->query('SELECT * FROM questions ORDER BY RAND() LIMIT 8');
-    }
-    $questions = $stmtQ->fetchAll();
-}
-
-// Determinar game_id para salvar sessão (padrão 1 se misto)
-$activeGameId = 1;
-if (!empty($questions[0]['game_id'])) {
-    $activeGameId = (int)$questions[0]['game_id'];
-}
 
 require_once __DIR__ . '/../includes/header.php';
 ?>
@@ -72,9 +52,9 @@ require_once __DIR__ . '/../includes/header.php';
         <span>IA Pedagógica</span>
       </div>
       <h1 class="game-header-title">
-        <i class="fa-solid fa-crosshairs text-primary"></i> Missão de Reforço
+        <i class="fa-solid fa-crosshairs text-primary"></i> Recuperação: <?= htmlspecialchars($selectedTopic) ?>
       </h1>
-      <p class="game-header-subtitle">Pratique questões formuladas com inteligência artificial para superar suas dúvidas e acelerar seu aprendizado.</p>
+      <p class="game-header-subtitle">Enviada por <?= htmlspecialchars($recovery['teacher_name'] ?? 'sua equipe pedagógica') ?>. Responda às questões para concluir sua recuperação.</p>
     </div>
     <div class="game-score-display">
       <div class="game-score-item">
@@ -90,20 +70,6 @@ require_once __DIR__ . '/../includes/header.php';
         <div class="game-score-label">Acertos</div>
       </div>
     </div>
-  </div>
-
-  <!-- Barra de Tópicos / Filtro de Reforço -->
-  <div class="reinforce-filter-bar">
-    <span class="filter-label"><i class="fa-solid fa-layer-group"></i> Tópico:</span>
-    <a href="/vortex/games/reinforcement.php" class="topic-pill <?= empty($selectedTopic) ? 'active' : '' ?>">
-      Todos (<?= array_sum(array_column($availableTopics, 'qty')) ?>)
-    </a>
-    <?php foreach ($availableTopics as $t): ?>
-      <a href="/vortex/games/reinforcement.php?topic=<?= urlencode($t['topic']) ?>" 
-         class="topic-pill <?= ($selectedTopic === $t['topic']) ? 'active' : '' ?>">
-        <?= htmlspecialchars($t['topic']) ?> (<?= $t['qty'] ?>)
-      </a>
-    <?php endforeach; ?>
   </div>
 
   <!-- Progress Bar -->
@@ -122,14 +88,11 @@ require_once __DIR__ . '/../includes/header.php';
       <div class="empty-state-icon">
         <i class="fa-solid fa-lightbulb text-warning"></i>
       </div>
-      <h3 class="empty-state-title">Nenhuma questão de reforço encontrada</h3>
-      <p class="empty-state-text">Ainda não há questões de reforço geradas para este tópico. Você pode pedir ao seu professor para gerar questões ou praticar nos jogos regulares.</p>
+      <h3 class="empty-state-title">Esta recuperação está sem questões</h3>
+      <p class="empty-state-text">Peça ao professor para gerar novamente as questões desta atividade.</p>
       <div class="flex-row justify-center gap-md mt-3">
-        <a href="/vortex/games/index.php" class="btn btn-primary">
-          <i class="fa-solid fa-gamepad"></i> Explorar Jogos
-        </a>
-        <a href="/vortex/dashboard.php" class="btn btn-secondary">
-          <i class="fa-solid fa-house"></i> Voltar ao Início
+        <a href="<?= BASE_URL ?>/recovery.php" class="btn btn-secondary">
+          <i class="fa-solid fa-arrow-left"></i> Voltar às recuperações
         </a>
       </div>
     </div>
@@ -205,11 +168,8 @@ require_once __DIR__ . '/../includes/header.php';
       </div>
 
       <div class="result-actions">
-        <button class="btn btn-primary" onclick="location.reload()">
-          <i class="fa-solid fa-rotate-right"></i> Refazer Treino
-        </button>
-        <a href="/vortex/dashboard.php" class="btn btn-secondary">
-          <i class="fa-solid fa-chart-line"></i> Ir ao Dashboard
+        <a href="<?= BASE_URL ?>/recovery.php" class="btn btn-primary">
+          <i class="fa-solid fa-check"></i> Voltar às recuperações
         </a>
       </div>
     </div>
@@ -220,7 +180,7 @@ require_once __DIR__ . '/../includes/header.php';
 <script>
 var questions = <?= json_encode(array_values(array_map(function($q) use ($user){
     return [
-        'id'            => (int)$q['id'],
+        'id'            => $q['id'],
         'game_id'       => (int)($q['game_id'] ?? 1),
         'topic'         => $q['topic'] ?? 'Reforço',
         'question_text' => $q['question_text'],
@@ -234,6 +194,7 @@ var questions = <?= json_encode(array_values(array_map(function($q) use ($user){
 }, $questions))) ?>;
 
 var activeGameId = <?= (int)$activeGameId ?>;
+var activeRecoveryId = <?= (int)$recoveryId ?>;
 var current      = 0;
 var score        = 0;
 var correct      = 0;
@@ -242,6 +203,10 @@ var answered     = false;
 var startTime    = Date.now();
 
 function loadQuestion(){
+  if(!questions || questions.length === 0){
+    document.getElementById('questionText').textContent = 'Carregando questões de reforço...';
+    return;
+  }
   if(current >= questions.length){ showResult(); return; }
   var q = questions[current];
   answered = false;
@@ -249,11 +214,7 @@ function loadQuestion(){
   document.getElementById('questionText').textContent = q.question_text;
   document.getElementById('qLabel').textContent = 'Questão ' + (current + 1) + ' de ' + questions.length;
   
-  if(q.is_targeted){
-    document.getElementById('qTopic').innerHTML = q.topic + ' <span class="badge-targeted"><i class="fa-solid fa-bullseye"></i> Atribuído para você</span>';
-  } else {
-    document.getElementById('qTopic').textContent = q.topic;
-  }
+  document.getElementById('qTopic').textContent = q.topic + (q.is_targeted ? ' — Recuperação individual' : '');
   document.getElementById('qnum').textContent = (current + 1) + '/' + questions.length;
 
   var pct = Math.round((current / questions.length) * 100);
@@ -295,7 +256,7 @@ async function checkAns(chosenLetter, clickedBtn){
 
   try {
     var token = getCsrfToken();
-    var res = await fetch('/vortex/api/check_answer.php', {
+    var res = await fetch('<?= BASE_URL ?>/api/check_answer.php', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -305,6 +266,7 @@ async function checkAns(chosenLetter, clickedBtn){
         question_id: q.id,
         chosen: chosenLetter,
         game_id: q.game_id || activeGameId,
+        recovery_id: activeRecoveryId,
         hint_used: false,
         csrf_token: token
       })
@@ -347,10 +309,15 @@ async function checkAns(chosenLetter, clickedBtn){
       feedbackExp.textContent = data.explanation || 'Compreender o passo a passo ajuda a não errar nas próximas!';
       feedbackBox.style.display = 'block';
       document.getElementById('nextBtn').classList.remove('d-none');
+    } else {
+      answered = false;
+      document.querySelectorAll('.option-btn').forEach(function(b){ b.disabled = false; });
+      showToast(data.error || 'Não foi possível validar a resposta. Tente novamente.', 'error');
     }
   } catch(e){
     showToast('Erro ao validar resposta.', 'error');
-    document.getElementById('nextBtn').classList.remove('d-none');
+    answered = false;
+    document.querySelectorAll('.option-btn').forEach(function(b){ b.disabled = false; });
   }
 }
 
@@ -382,7 +349,7 @@ async function showResult(){
   var elapsed = Math.round((Date.now() - startTime) / 1000);
   try {
     var token = getCsrfToken();
-    var res = await fetch('/vortex/api/save_score.php', {
+    var res = await fetch('<?= BASE_URL ?>/api/save_score.php', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -390,6 +357,7 @@ async function showResult(){
       },
       body: JSON.stringify({
         game_id: activeGameId,
+        recovery_id: activeRecoveryId,
         score: score,
         correct: correct,
         wrong: wrong,
@@ -399,10 +367,17 @@ async function showResult(){
       })
     });
     var saved = await res.json();
-    if(saved.success && saved.xp_gained){
-      showToast('Excelente! Você ganhou ' + saved.xp_gained + ' XP!', 'success');
+    if(saved && saved.success){
+      document.getElementById('resultScore').textContent = 'Sua nota nesta recuperação: ' + saved.recovery_score + '/100.';
+      animateXP(saved.xp_gained);
+      displayPhaseRewards(saved);
+      showToast('Recuperação concluída! Nota ' + saved.recovery_score + '/100. +' + saved.xp_gained + ' XP ganhos!', 'success');
+    } else {
+      showToast('Não foi possível salvar sua recuperação: ' + ((saved && saved.error) || 'tente novamente.'), 'error');
     }
-  } catch(e){}
+  } catch(e){
+    showToast('Falha de comunicação ao salvar sua recuperação. Tente novamente.', 'error');
+  }
 }
 
 function speakQuestion(){

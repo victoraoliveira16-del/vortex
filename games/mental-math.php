@@ -6,6 +6,9 @@ requireLogin();
 $stmt = $pdo->prepare('SELECT * FROM games WHERE slug=?');
 $stmt->execute(['mental-math']);
 $game = $stmt->fetch();
+if (!$game) {
+    $game = ['id' => 3, 'slug' => 'mental-math', 'name' => 'Calculadora Mental', 'topic' => 'Calculo Mental Agil'];
+}
 
 require_once __DIR__ . '/../includes/header.php';
 ?>
@@ -15,7 +18,7 @@ require_once __DIR__ . '/../includes/header.php';
     
     <!-- Cabinet Top Marquee Bar -->
     <div class="arcade-marquee">
-      <a href="/vortex/games/index.php" class="arcade-nav-back" title="Voltar para Todos os Jogos">
+      <a href="<?= BASE_URL ?>/games/index.php" class="arcade-nav-back" title="Voltar para Todos os Jogos">
         <i class="fa-solid fa-chevron-left"></i> <span>Jogos</span>
       </a>
       <div class="arcade-title-group">
@@ -216,10 +219,10 @@ require_once __DIR__ . '/../includes/header.php';
             <i class="fa-solid fa-rotate-left"></i> Jogar Novamente
           </button>
           <div class="d-flex gap-2 justify-content-center mt-3">
-            <a href="/vortex/dashboard.php" class="btn btn-secondary">
+            <a href="<?= BASE_URL ?>/dashboard.php" class="btn btn-secondary">
               <i class="fa-solid fa-chart-line"></i> Dashboard
             </a>
-            <a href="/vortex/games/index.php" class="btn btn-success">
+            <a href="<?= BASE_URL ?>/games/index.php" class="btn btn-success">
               <i class="fa-solid fa-gamepad"></i> Outros Jogos
             </a>
           </div>
@@ -598,7 +601,7 @@ function showFeedbackWrong(title, chosenVal, correctVal, explanationText, lifeTe
 async function createNextQuestion(lvl){
   try {
     var token = getCsrfToken();
-    var response = await fetch('/vortex/api/generate_mental_question.php', {
+    var response = await fetch('<?= BASE_URL ?>/api/generate_mental_question.php', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

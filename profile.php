@@ -27,11 +27,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profile_photo'])) {
       $filePath = $uploadDir . '/' . $fileName;
 
       if (move_uploaded_file($_FILES['profile_photo']['tmp_name'], $filePath)) {
-        if (!empty($user['profile_photo']) && str_starts_with($user['profile_photo'], '/vortex/assets/uploads/profiles/')) {
-          $oldPath = __DIR__ . str_replace('/vortex', '', $user['profile_photo']);
+        if (!empty($user['profile_photo'])) {
+          $oldFileName = basename($user['profile_photo']);
+          $oldPath = $uploadDir . '/' . $oldFileName;
           if (is_file($oldPath)) unlink($oldPath);
         }
-        $profilePhoto = '/vortex/assets/uploads/profiles/' . $fileName;
+        $profilePhoto = BASE_URL . '/assets/uploads/profiles/' . $fileName;
         $stmt = $pdo->prepare('UPDATE users SET profile_photo = ? WHERE id = ?');
         $stmt->execute([$profilePhoto, $user['id']]);
         $user['profile_photo'] = $profilePhoto;
@@ -162,8 +163,8 @@ require_once __DIR__ . '/includes/header.php';
   </div>
 
   <div class="profile-actions">
-    <a href="/vortex/dashboard.php" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Voltar ao Dashboard</a>
-    <a href="/vortex/games/index.php" class="btn btn-primary"><i class="fa-solid fa-gamepad"></i> Explorar Jogos</a>
+    <a href="<?= BASE_URL ?>/dashboard.php" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Voltar ao Dashboard</a>
+    <a href="<?= BASE_URL ?>/games/index.php" class="btn btn-primary"><i class="fa-solid fa-gamepad"></i> Explorar Jogos</a>
   </div>
 </div>
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

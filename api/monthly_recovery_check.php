@@ -4,16 +4,17 @@
  * 
  * Execução manual via navegador:
  *   Requer login de professor ou token secreto:
- *   GET /vortex/api/monthly_recovery_check.php?token=SEU_TOKEN
+ *   GET /api/monthly_recovery_check.php?token=SEU_TOKEN
  * 
- * Execução automática via terminal / Task Scheduler:
- *   php C:\xampp\htdocs\vortex\api\monthly_recovery_check.php
+ * Execução automática via terminal / cron / Task Scheduler:
+ *   php api/monthly_recovery_check.php
  */
 
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/recovery_audit.php';
 
 $isCli = (php_sapi_name() === 'cli' || empty($_SERVER['REMOTE_ADDR']));
+$requestData = [];
 
 if (!$isCli) {
     header('Content-Type: application/json; charset=utf-8');
@@ -25,6 +26,18 @@ $authorized = false;
 if ($isCli) {
     $authorized = true;
 } elseif (isLoggedIn() && isTeacher()) {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        http_response_code(405);
+        echo json_encode(['success' => false, 'error' => 'Use POST para executar a auditoria manualmente.']);
+        exit;
+    }
+    $requestData = json_decode(file_get_contents('php://input'), true) ?? [];
+    $csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($requestData['csrf_token'] ?? '');
+    if (!$csrfToken || !verifyCsrfToken($csrfToken)) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'error' => 'Sessão inválida. Recarregue a página e tente novamente.']);
+        exit;
+    }
     $authorized = true;
 } else {
     // Verificar token secreto para automações de cron/agendadores externos
@@ -51,7 +64,8 @@ if (!$authorized) {
 }
 
 // 2. Parâmetros de execução
-$force = isset($_GET['force']) && ($_GET['force'] === '1' || $_GET['force'] === 'true');
+$forceParam = $_GET['force'] ?? $_POST['force'] ?? ($requestData['force'] ?? '');
+$force = $forceParam === '1' || $forceParam === 'true';
 if ($isCli) {
     // Suporte a flags CLI: --force e --month=YYYY-MM
     global $argv;
@@ -65,7 +79,7 @@ if ($isCli) {
     }
 }
 
-$targetMonth = $_GET['month'] ?? ($monthParam ?? date('Y-m'));
+$targetMonth = $_GET['month'] ?? ($_POST['month'] ?? ($requestData['month'] ?? ($monthParam ?? date('Y-m'))));
 
 // Validar formato YYYY-MM
 if (!preg_match('/^\d{4}-\d{2}$/', $targetMonth)) {

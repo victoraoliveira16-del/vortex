@@ -3,11 +3,20 @@ $pageTitle = 'Criar Conta';
 require_once __DIR__ . '/includes/auth.php';
 
 if (isLoggedIn()) {
-    header('Location: /vortex/dashboard.php');
+    header('Location: ' . BASE_URL . '/index.php');
     exit;
 }
 
 $error = '';
+$classId = null;
+$classStmt = $pdo->query('
+    SELECT c.id, c.name, c.max_students, COUNT(u.id) AS student_count
+    FROM classes c
+    LEFT JOIN users u ON u.class_id = c.id AND u.role = "student"
+    GROUP BY c.id
+    ORDER BY c.name
+');
+$classes = $classStmt->fetchAll();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Verificação CSRF
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
@@ -19,6 +28,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $confirm    = $_POST['confirm'] ?? '';
     $role       = in_array($_POST['role'] ?? '', ['student', 'teacher']) ? $_POST['role'] : 'student';
     $inviteCode = trim($_POST['invite_code'] ?? '');
+    $rawClassId = $_POST['class_id'] ?? '';
+    if ($role === 'student') {
+        $parsedClassId = filter_var($rawClassId, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $classId = $parsedClassId === false ? null : $parsedClassId;
+    }
 
     if (!$error) {
         if (!$name || !$email || !$password || !$confirm) {
@@ -29,10 +43,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'A senha deve ter pelo menos 6 caracteres.';
         } elseif ($password !== $confirm) {
             $error = 'As senhas nao conferem.';
+        } elseif ($role === 'student' && !$classId) {
+            $error = 'Selecione uma turma para sua conta.';
         } else {
-            $r = registerUser($name, $email, $password, $role, $inviteCode);
+            $r = registerUser($name, $email, $password, $role, $inviteCode, $classId);
             if ($r['success']) {
-                header('Location: ' . ($r['role'] === 'teacher' ? '/vortex/teacher/dashboard.php' : '/vortex/dashboard.php'));
+                header('Location: ' . BASE_URL . '/index.php');
                 exit;
             } else {
                 $error = $r['message'];
@@ -61,8 +77,8 @@ require_once __DIR__ . '/includes/header.php';
 
   <div class="auth-form-wrap">
     <div class="auth-form-inner">
-      <a href="/vortex/index.php" class="auth-logo">
-        <img src="/vortex/assets/images/logo-clean.png" alt="Logo MathPlay" class="auth-logo-img">
+      <a href="<?= BASE_URL ?>/index.php" class="auth-logo">
+        <img src="<?= BASE_URL ?>/assets/images/logo-clean.png" alt="Logo MathPlay" class="auth-logo-img">
         <span class="auth-logo-text">MathPlay</span>
       </a>
       <h1 class="auth-title">Criar conta gratis</h1>
@@ -89,26 +105,50 @@ require_once __DIR__ . '/includes/header.php';
         </div>
         <div class="form-group">
           <label class="form-label" for="password">Senha <span class="form-label-hint">(min. 6 caracteres)</span></label>
-          <input type="password" id="password" name="password" class="form-control" placeholder="Crie uma senha forte" required minlength="6" autocomplete="new-password" aria-required="true">
+          <div class="password-input-wrap">
+            <input type="password" id="password" name="password" class="form-control" placeholder="Crie uma senha forte" required minlength="6" autocomplete="new-password" aria-required="true">
+            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('password', this)" aria-label="Mostrar senha" title="Mostrar senha">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label" for="confirm">Confirmar senha</label>
-          <input type="password" id="confirm" name="confirm" class="form-control" placeholder="Repita a senha" required autocomplete="new-password" aria-required="true">
+          <div class="password-input-wrap">
+            <input type="password" id="confirm" name="confirm" class="form-control" placeholder="Repita a senha" required autocomplete="new-password" aria-required="true">
+            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('confirm', this)" aria-label="Mostrar senha" title="Mostrar senha">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label">Tipo de conta</label>
           <div class="radio-group">
             <label class="radio-card <?= (($_POST['role'] ?? 'student') === 'student') ? 'selected' : '' ?>">
               <input type="radio" name="role" value="student" <?= (($_POST['role'] ?? 'student') === 'student') ? 'checked' : '' ?>
-                onchange="document.querySelectorAll('.radio-card').forEach(c=>c.classList.remove('selected'));this.closest('.radio-card').classList.add('selected')">
+                onchange="document.querySelectorAll('.radio-card').forEach(c=>c.classList.remove('selected'));this.closest('.radio-card').classList.add('selected');toggleClassField()">
               <i class="fa-solid fa-graduation-cap"></i> Aluno
             </label>
             <label class="radio-card <?= (($_POST['role'] ?? '') === 'teacher') ? 'selected' : '' ?>">
               <input type="radio" name="role" value="teacher" <?= (($_POST['role'] ?? '') === 'teacher') ? 'checked' : '' ?>
-                onchange="document.querySelectorAll('.radio-card').forEach(c=>c.classList.remove('selected'));this.closest('.radio-card').classList.add('selected');document.getElementById('invite-wrap').style.display='block'">
+                onchange="document.querySelectorAll('.radio-card').forEach(c=>c.classList.remove('selected'));this.closest('.radio-card').classList.add('selected');document.getElementById('invite-wrap').style.display='block';toggleClassField()">
               <i class="fa-solid fa-chalkboard-user"></i> Professor
             </label>
           </div>
+        </div>
+
+        <div class="form-group" id="class-wrap" style="display:<?= (($_POST['role'] ?? 'student') === 'student') ? 'block' : 'none' ?>;">
+          <label class="form-label" for="class_id">Turma</label>
+          <select class="form-control" id="class_id" name="class_id" <?= (($_POST['role'] ?? 'student') === 'student') ? 'required' : 'disabled' ?>>
+            <option value="">Selecione sua turma</option>
+            <?php foreach ($classes as $class):
+              $classFull = (int)$class['student_count'] >= (int)$class['max_students'];
+            ?>
+              <option value="<?= (int)$class['id'] ?>" <?= (int)$classId === (int)$class['id'] ? 'selected' : '' ?> <?= $classFull ? 'disabled' : '' ?>>
+                <?= htmlspecialchars($class['name']) ?> (<?= (int)$class['student_count'] ?>/<?= (int)$class['max_students'] ?>)<?= $classFull ? ' — cheia' : '' ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
         </div>
 
         <!-- Código de convite — aparece só quando Professor for selecionado -->
@@ -134,9 +174,36 @@ require_once __DIR__ . '/includes/header.php';
             });
           }
         });
+        function toggleClassField(){
+          var isStudent = document.querySelector('input[name="role"]:checked').value === 'student';
+          var wrap = document.getElementById('class-wrap');
+          var field = document.getElementById('class_id');
+          wrap.style.display = isStudent ? 'block' : 'none';
+          field.disabled = !isStudent;
+          field.required = isStudent;
+        }
+
+        function togglePasswordVisibility(inputId, btn) {
+          var input = document.getElementById(inputId);
+          if (!input) return;
+          var icon = btn.querySelector('i');
+          if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+            btn.setAttribute('aria-label', 'Ocultar senha');
+            btn.setAttribute('title', 'Ocultar senha');
+          } else {
+            input.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+            btn.setAttribute('aria-label', 'Mostrar senha');
+            btn.setAttribute('title', 'Mostrar senha');
+          }
+        }
       </script>
       <p class="auth-footer-text">
-        Ja tem conta? <a href="/vortex/login.php" class="auth-footer-link">Entrar agora</a>
+        Ja tem conta? <a href="<?= BASE_URL ?>/login.php" class="auth-footer-link">Entrar agora</a>
       </p>
     </div>
   </div>

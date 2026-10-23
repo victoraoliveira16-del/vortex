@@ -1,0 +1,709 @@
+/* ==========================================================================
+   TEACHER DASHBOARD & REPORTS (teacher.css)
+   ========================================================================== */
+
+.teacher-layout {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 5rem;
+}
+
+.teacher-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2.25rem;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}
+
+.teacher-title {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.teacher-subtitle {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin-top: 0.25rem;
+}
+
+.teacher-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* Alert Items */
+.alert-section {
+  margin-bottom: 2.25rem;
+}
+
+/* Count badge next to heading */
+.alert-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  padding: 0 6px;
+  margin-left: 0.45rem;
+  vertical-align: middle;
+  transition: transform 0.25s ease;
+}
+
+/* Slide-in animation on page load */
+@keyframes alertSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Slide-out animation on dismiss */
+@keyframes alertSlideOut {
+  0%   { opacity: 1; transform: translateX(0);   max-height: 200px; margin-bottom: 0.85rem; }
+  60%  { opacity: 0; transform: translateX(40px); }
+  100% { opacity: 0; max-height: 0;    margin-bottom: 0;    padding-top: 0; padding-bottom: 0; border-width: 0; }
+}
+
+.alert-item {
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  border-left: 5px solid var(--danger);
+  border-radius: var(--radius-sm);
+  padding: 1.1rem 1.35rem;
+  margin-bottom: 0.85rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  overflow: hidden;
+}
+
+/* Animated variant */
+.alert-animated {
+  animation: alertSlideIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--delay, 0ms);
+}
+
+/* Dismiss state */
+.alert-item.dismissing {
+  animation: alertSlideOut 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  pointer-events: none;
+}
+
+/* Dismiss button */
+.alert-dismiss-btn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  transition: background 0.15s, color 0.15s, transform 0.12s;
+  margin-left: auto;
+}
+
+.alert-dismiss-btn:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--danger);
+  transform: scale(1.1);
+}
+
+.alert-item-icon {
+  font-size: 1.2rem;
+  color: var(--danger);
+  margin-top: 0.15rem;
+  flex-shrink: 0;
+}
+
+.alert-item-title {
+  font-weight: 800;
+  color: var(--danger);
+  font-size: 0.95rem;
+}
+
+.alert-item-msg {
+  font-size: 0.875rem;
+  color: var(--text);
+  margin-top: 0.25rem;
+}
+
+.alert-item-time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.35rem;
+}
+
+/* Performance by Game Cards */
+.game-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.game-stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+}
+
+.game-stat-card-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.game-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.45rem 0;
+  border-bottom: 1px dashed var(--border);
+  font-size: 0.875rem;
+}
+
+.game-stat-row:last-of-type {
+  border-bottom: none;
+}
+
+.game-stat-row-label {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.game-stat-row-val {
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Section Header with Hint */
+.section-header-flex {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.section-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Table Button - Apply Recovery */
+.btn-recovery-trigger {
+  background: rgba(79, 70, 229, 0.08);
+  color: var(--primary);
+  border: 1.5px solid rgba(79, 70, 229, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.75rem;
+  font-size: 0.775rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.btn-recovery-trigger:hover {
+  background: var(--primary);
+  color: #FFFFFF;
+  border-color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.student-delete-form {
+  display: inline-block;
+  margin-left: 0.35rem;
+}
+
+.btn-student-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.65rem;
+  border: 1.5px solid rgba(220, 38, 38, 0.35);
+  border-radius: var(--radius-sm);
+  background: rgba(220, 38, 38, 0.08);
+  color: var(--danger);
+  font-size: 0.775rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: var(--transition);
+}
+
+.btn-student-delete:hover {
+  border-color: var(--danger);
+  background: var(--danger);
+  color: #FFFFFF;
+}
+
+/* AI Question Generator Card */
+.ai-generator-card {
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, rgba(124, 58, 237, 0.08) 100%);
+  border: 1.5px solid rgba(79, 70, 229, 0.25);
+  border-radius: var(--radius);
+  padding: 2.25rem;
+  margin-top: 2.5rem;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ai-generator-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.ai-generator-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  margin-bottom: 0.45rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--text);
+}
+
+.ai-generator-desc {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  max-width: 780px;
+}
+
+.ai-mode-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: rgba(79, 70, 229, 0.12);
+  color: var(--primary);
+  border: 1px solid rgba(79, 70, 229, 0.25);
+}
+
+.ai-mode-pill.individual {
+  background: rgba(16, 185, 129, 0.14);
+  color: var(--success);
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+/* Dynamic Target Student Alert Notice */
+.target-student-notice {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 0.85rem 1.15rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  animation: slideIn 0.3s ease;
+}
+
+.target-notice-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.target-notice-icon {
+  font-size: 1.25rem;
+  color: var(--success);
+}
+
+.target-student-notice strong {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.target-student-notice span {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.btn-ghost-danger {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-ghost-danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Form Grid */
+.ai-generator-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 1.25rem;
+  align-items: flex-end;
+}
+
+@media (max-width: 900px) {
+  .ai-generator-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ai-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.ai-field-label {
+  font-size: 0.825rem;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.ai-select-full {
+  width: 100%;
+  min-height: 46px;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.9rem;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.btn-generate-ai {
+  min-height: 46px;
+  padding: 0 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Highlight pulse animation when clicking from table */
+@keyframes highlightGlow {
+  0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.6); transform: scale(1); }
+  50% { box-shadow: 0 0 0 12px rgba(79, 70, 229, 0.25); transform: scale(1.01); }
+  100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); transform: scale(1); }
+}
+
+.highlight-pulse {
+  animation: highlightGlow 1.2s ease-in-out;
+}
+
+/* Status Badges in Reports */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-full);
+  font-size: 0.775rem;
+  font-weight: 700;
+}
+
+.status-badge-ok {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--success);
+}
+
+.status-badge-warn {
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--accent);
+}
+
+.status-badge-danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--danger);
+}
+
+.rank-badge {
+  font-weight: 900;
+  font-size: 0.95rem;
+}
+
+.rank-1 { color: #F59E0B; }
+.rank-2 { color: #94A3B8; }
+.rank-3 { color: #CD7F32; }
+.rank-other { color: var(--text-muted); }
+
+.student-danger-row {
+  background: rgba(239, 68, 68, 0.04);
+}
+
+.student-danger-badge {
+  font-size: 0.7rem;
+  color: var(--danger);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.15rem;
+}
+
+/* ==========================================================================
+   MONTHLY AUDIT BANNER & CHIPS
+   ========================================================================== */
+.monthly-audit-banner {
+  background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  margin-bottom: 2.25rem;
+  transition: var(--transition);
+}
+
+.monthly-audit-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.monthly-audit-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 1.15rem;
+}
+
+.monthly-audit-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.45rem;
+  flex-shrink: 0;
+}
+
+.monthly-audit-icon.success {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--success);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.monthly-audit-icon.warning {
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--accent);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.monthly-audit-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.monthly-audit-heading {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 0.2rem;
+}
+
+.monthly-audit-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.monthly-audit-list {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--border);
+}
+
+.monthly-audit-list-title {
+  font-size: 0.825rem;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.65rem;
+}
+
+.monthly-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.monthly-chip {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.825rem;
+  color: var(--text);
+}
+
+.monthly-chip-topic {
+  font-size: 0.75rem;
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.btn-chip-action {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger);
+  border: none;
+  border-radius: 4px;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-chip-action:hover {
+  background: var(--danger);
+  color: #FFFFFF;
+}
+
+.teacher-classes-panel {
+  margin-bottom: 1.5rem;
+}
+
+.teacher-classes-panel .card-body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 1rem 1.5rem;
+}
+
+.teacher-class-create-form,
+.teacher-class-filter-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 0.65rem;
+}
+
+.teacher-class-create-form .form-label,
+.teacher-class-filter-form .form-label {
+  margin: 0;
+}
+
+.teacher-class-create-form {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.teacher-class-create-form .form-label {
+  grid-column: 1 / -1;
+}
+
+.teacher-class-create-form .form-control,
+.teacher-class-filter-form .form-control {
+  width: 100%;
+  min-width: 0;
+}
+
+.teacher-class-create-form .btn {
+  min-height: 54px;
+}
+
+.student-class-form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 220px;
+}
+
+.student-class-form .form-control {
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .teacher-classes-panel .card-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .teacher-class-create-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .teacher-class-create-form .form-label {
+    grid-column: auto;
+  }
+
+  .student-class-form {
+    min-width: 190px;
+  }
+}
+
+/* Print Stylesheet */
+@media print {
+  .navbar, .a11y-bar, .footer, .teacher-actions, .ai-generator-card {
+    display: none !important;
+  }
+  body {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+  }
+  .card {
+    box-shadow: none !important;
+    border: 1px solid #CCCCCC !important;
+  }
+}

@@ -21,7 +21,12 @@ if (!isTeacher()) {
     exit;
 }
 
-$data      = json_decode(file_get_contents('php://input'), true) ?? [];
+$data = json_decode(file_get_contents('php://input'), true);
+if (!is_array($data)) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'error' => 'JSON invalido.']);
+    exit;
+}
 $csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($data['csrf_token'] ?? '');
 if (!$csrfToken || !verifyCsrfToken($csrfToken)) {
     http_response_code(403);
@@ -33,21 +38,92 @@ $teacherUser = getCurrentUser();
 $teacherId   = (int)$teacherUser['id'];
 $teacherName = $teacherUser['name'] ?? 'Professor';
 
-$topic  = trim((string)($data['topic'] ?? 'Fracoes e Razoes'));
-$gameId = (int)($data['game_id'] ?? 1);
+$rawTopic = $data['topic'] ?? null;
+$rawGameId = $data['game_id'] ?? null;
+$rawStudentId = $data['student_id'] ?? null;
+$rawClassId = $data['class_id'] ?? null;
+if (
+    !is_string($rawTopic) || trim($rawTopic) === ''
+    || (!is_int($rawGameId) && !is_string($rawGameId))
+    || (($rawStudentId === null || $rawStudentId === '') === ($rawClassId === null || $rawClassId === ''))
+) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'error' => 'Selecione um aluno ou uma turma e informe um tópico válido.']);
+    exit;
+}
 
-// Aluno alvo específico (opcional)
-$rawStudentId    = $data['student_id'] ?? null;
+$topic = trim($rawTopic);
+$gameId = filter_var($rawGameId, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+if ($gameId === false) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'error' => 'Jogo inválido.']);
+    exit;
+}
+
+$gameStmt = $pdo->prepare('SELECT id, topic FROM games WHERE id = ?');
+$gameStmt->execute([$gameId]);
+$game = $gameStmt->fetch();
+if (!$game || $game['topic'] !== $topic) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'error' => 'O tópico não corresponde ao jogo selecionado.']);
+    exit;
+}
+$topic = $game['topic'];
+
 $targetStudentId = null;
-$targetStudent   = null;
-
-if (!empty($rawStudentId) && $rawStudentId !== 'all') {
-    $stmtS = $pdo->prepare('SELECT id, name, email FROM users WHERE id = ? AND role = "student"');
-    $stmtS->execute([(int)$rawStudentId]);
-    $targetStudent = $stmtS->fetch();
-    if ($targetStudent) {
-        $targetStudentId = (int)$targetStudent['id'];
+$targetStudent = null;
+$classId = null;
+$classStudents = [];
+if ($rawStudentId !== null && $rawStudentId !== '') {
+    if (!is_int($rawStudentId) && !is_string($rawStudentId)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'error' => 'Identificador de aluno inválido.']);
+        exit;
     }
+    $targetStudentId = filter_var($rawStudentId, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    if ($targetStudentId === false) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'error' => 'Identificador de aluno inválido.']);
+        exit;
+    }
+    $stmtS = $pdo->prepare('SELECT id, name, email FROM users WHERE id = ? AND role = "student"');
+    $stmtS->execute([$targetStudentId]);
+    $targetStudent = $stmtS->fetch();
+    if (!$targetStudent) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'error' => 'Aluno não encontrado.']);
+        exit;
+    }
+    $targets = [$targetStudent];
+} else {
+    if (!is_int($rawClassId) && !is_string($rawClassId)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'error' => 'Identificador de turma inválido.']);
+        exit;
+    }
+    $classId = filter_var($rawClassId, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    if ($classId === false) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'error' => 'Identificador de turma inválido.']);
+        exit;
+    }
+    $stmt = $pdo->prepare('SELECT id, name FROM classes WHERE id = ?');
+    $stmt->execute([$classId]);
+    $class = $stmt->fetch();
+    if (!$class) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'error' => 'Turma não encontrada.']);
+        exit;
+    }
+    $stmt = $pdo->prepare('SELECT id, name, email FROM users WHERE class_id = ? AND role = "student" ORDER BY name');
+    $stmt->execute([$classId]);
+    $classStudents = $stmt->fetchAll();
+    if (!$classStudents) {
+        http_response_code(422);
+        echo json_encode(['success' => false, 'error' => 'A turma selecionada não possui alunos.']);
+        exit;
+    }
+    $targets = $classStudents;
 }
 
 $_envCfg = file_exists(__DIR__ . '/../.env') ? (parse_ini_file(__DIR__ . '/../.env') ?: []) : [];
@@ -56,7 +132,7 @@ $GEMINI_KEY = trim((string)($_envCfg['GEMINI_API_KEY'] ?? ''));
 $questions = null;
 
 // Análise de estatísticas para calibrar a dificuldade
-if ($targetStudentId) {
+if ($targetStudentId !== null) {
     // Estatísticas específicas do aluno selecionado
     $stmtStats = $pdo->prepare('
         SELECT SUM(gs.wrong_answers) AS e, SUM(gs.correct_answers) AS a, 
@@ -72,20 +148,21 @@ if ($targetStudentId) {
 
     $promptContext = 'O aluno "' . $targetStudent['name'] . '" errou ' . $errorRate . '% das questoes sobre "' . $topic . '". Gere 3 questoes de multipla escolha em portugues do Brasil com foco pedagogico para recuperacao individual.';
 } else {
-    // Estatísticas gerais da turma
+    $classStudentIds = array_column($classStudents, 'id');
+    $placeholders = implode(',', array_fill(0, count($classStudentIds), '?'));
     $stmtStats = $pdo->prepare('
         SELECT SUM(gs.wrong_answers) AS e, SUM(gs.correct_answers) AS a, 
                SUM(gs.wrong_answers + gs.correct_answers) AS t 
         FROM game_sessions gs 
         JOIN games g ON g.id = gs.game_id 
-        WHERE g.topic = ?
+        WHERE g.topic = ? AND gs.user_id IN (' . $placeholders . ')
     ');
-    $stmtStats->execute([$topic]);
+    $stmtStats->execute(array_merge([$topic], $classStudentIds));
     $stats = $stmtStats->fetch();
     $totalAttempts = (int)($stats['t'] ?? 0);
     $errorRate = $totalAttempts > 0 ? round((int)$stats['e'] / $totalAttempts * 100) : 40;
 
-    $promptContext = 'A turma errou em media ' . $errorRate . '% das questoes sobre "' . $topic . '". Gere 3 questoes de multipla escolha em portugues do Brasil para reforco coletivo.';
+    $promptContext = 'A turma ' . $class['name'] . ' errou em media ' . $errorRate . '% das questoes sobre "' . $topic . '". Gere 3 questoes de multipla escolha em portugues do Brasil para uma recuperacao individual por aluno desta turma.';
 }
 
 // Tentativa de chamada à API do Gemini
@@ -102,15 +179,26 @@ if (!empty($GEMINI_KEY) && $GEMINI_KEY !== 'YOUR_GEMINI_API_KEY_HERE') {
             ]]
         ];
 
+        $caBundle = ini_get('curl.cainfo');
+        if (!$caBundle || !is_file($caBundle)) {
+            $laragonCaBundle = dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'etc' . DIRECTORY_SEPARATOR . 'ssl' . DIRECTORY_SEPARATOR . 'cacert.pem';
+            $caBundle = is_file($laragonCaBundle) ? $laragonCaBundle : null;
+        }
+
         $ch = curl_init($url);
-        curl_setopt_array($ch, [
+        $curlOptions = [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST           => true,
             CURLOPT_TIMEOUT        => 12,
-            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
             CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
             CURLOPT_POSTFIELDS     => json_encode($payload)
-        ]);
+        ];
+        if ($caBundle) {
+            $curlOptions[CURLOPT_CAINFO] = $caBundle;
+        }
+        curl_setopt_array($ch, $curlOptions);
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
@@ -140,7 +228,7 @@ if (!empty($GEMINI_KEY) && $GEMINI_KEY !== 'YOUR_GEMINI_API_KEY_HERE') {
 
 // Fallback pedagógico contextualizado caso a API do Gemini esteja offline/ocupada
 if (!$questions) {
-    $tagLabel = $targetStudent ? ('[Recuperação • ' . $targetStudent['name'] . ']') : '[Reforço Pedagógico]';
+    $tagLabel = '[Recuperação]';
 
     if ($topic === 'Geometria Plana' || $gameId === 2) {
         $questions = [
@@ -205,82 +293,91 @@ if (!$questions) {
     }
 }
 
-// Salvar as questões no banco com vinculação individual ou geral
-$inserted = 0;
-$insertStmt = $pdo->prepare('
-    INSERT INTO questions 
-    (game_id, topic, question_text, option_a, option_b, option_c, option_d, correct_answer, explanation, difficulty, is_ai_generated, target_user_id) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, "easy", 1, ?)
-');
-
-foreach ($questions as $q) {
-    if (empty($q['pergunta'])) continue;
-    $insertStmt->execute([
-        $gameId,
-        $topic,
-        $q['pergunta'],
-        $q['opcao_a'] ?? '',
-        $q['opcao_b'] ?? '',
-        $q['opcao_c'] ?? '',
-        $q['opcao_d'] ?? '',
-        strtoupper($q['resposta_correta'] ?? 'A'),
-        $q['explicacao'] ?? '',
-        $targetStudentId // NULL se for para toda a turma, ou ID do aluno específico
-    ]);
-    $inserted++;
+$validQuestions = [];
+foreach (is_array($questions) ? $questions : [] as $question) {
+    if (!is_array($question)) continue;
+    $answer = strtoupper(trim((string)($question['resposta_correta'] ?? '')));
+    $values = [
+        'pergunta' => trim((string)($question['pergunta'] ?? '')),
+        'opcao_a' => trim((string)($question['opcao_a'] ?? '')),
+        'opcao_b' => trim((string)($question['opcao_b'] ?? '')),
+        'opcao_c' => trim((string)($question['opcao_c'] ?? '')),
+        'opcao_d' => trim((string)($question['opcao_d'] ?? '')),
+        'resposta_correta' => $answer,
+        'explicacao' => trim((string)($question['explicacao'] ?? '')),
+    ];
+    if (
+        $values['pergunta'] === '' || $values['opcao_a'] === '' || $values['opcao_b'] === ''
+        || $values['opcao_c'] === '' || $values['opcao_d'] === ''
+        || !in_array($answer, ['A', 'B', 'C', 'D'], true)
+    ) {
+        continue;
+    }
+    $validQuestions[] = $values;
 }
 
-$notifStmt = $pdo->prepare('INSERT INTO notifications (user_id, type, title, message) VALUES (?, "ai", ?, ?)');
-$notifiedCount = 0;
+if (!$validQuestions) {
+    http_response_code(502);
+    echo json_encode(['success' => false, 'error' => 'Não foi possível gerar questões válidas para esta recuperação.']);
+    exit;
+}
 
-if ($targetStudentId && $targetStudent) {
-    // Notifica APENAS o aluno específico selecionado pelo professor
-    $stuTitle = "🎯 Recuperação Atribuída: {$topic}";
-    $stuMsg   = "O {$teacherName} preparou uma atividade de recuperação individual em {$topic} especialmente para você. {$inserted} questões já estão liberadas no seu Treino de Reforço!";
-    $notifStmt->execute([$targetStudentId, $stuTitle, $stuMsg]);
-    $notifiedCount = 1;
+$insertRecovery = $pdo->prepare("
+    INSERT INTO recoveries (student_id, teacher_id, topic, game_id, status)
+    VALUES (?, ?, ?, ?, 'pending')
+");
+$insertQuestion = $pdo->prepare('
+    INSERT INTO questions
+    (game_id, topic, question_text, option_a, option_b, option_c, option_d, correct_answer, explanation, difficulty, is_ai_generated, target_user_id, recovery_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, "easy", 1, ?, ?)
+');
+$notifyStudent = $pdo->prepare('INSERT INTO notifications (user_id, type, title, message) VALUES (?, "ai", ?, ?)');
+$totalQuestions = 0;
 
-    // Confirmação para o professor
-    $confirmTitle = "Recuperação Individual Ativada";
-    $confirmMsg   = "Recuperação de {$topic} aplicada com sucesso para o aluno {$targetStudent['name']}! {$inserted} questões geradas.";
-    $notifStmt->execute([$teacherId, $confirmTitle, $confirmMsg]);
-
-} else {
-    // Notifica toda a turma (reforço coletivo)
-    $stmtStudents = $pdo->prepare('
-        SELECT u.id, u.name,
-               COALESCE(SUM(gs.wrong_answers), 0) AS misses,
-               COALESCE(SUM(gs.correct_answers), 0) AS hits
-        FROM users u
-        LEFT JOIN game_sessions gs ON gs.user_id = u.id AND gs.game_id = ?
-        WHERE u.role = "student"
-        GROUP BY u.id, u.name
-    ');
-    $stmtStudents->execute([$gameId]);
-    $students = $stmtStudents->fetchAll();
-
-    foreach ($students as $stu) {
-        $hasErrors = (int)$stu['misses'] > 0;
-        $title = $hasErrors ? "🎯 Reforço Recomendado: {$topic}" : "✨ Desafio de Fixação: {$topic}";
-        $msg   = $hasErrors
-            ? "Identificamos pontos de melhoria em {$topic}. {$inserted} novas questões de reforço preparadas para você dominar o assunto!"
-            : "Novas questões de fixação com IA sobre {$topic} foram liberadas no seu Treino de Reforço!";
-        $notifStmt->execute([(int)$stu['id'], $title, $msg]);
-        $notifiedCount++;
+$pdo->beginTransaction();
+try {
+    foreach ($targets as $student) {
+        $insertRecovery->execute([(int)$student['id'], $teacherId, $topic, $gameId]);
+        $recoveryId = (int)$pdo->lastInsertId();
+        foreach ($validQuestions as $question) {
+            $insertQuestion->execute([
+                $gameId,
+                $topic,
+                $question['pergunta'],
+                $question['opcao_a'],
+                $question['opcao_b'],
+                $question['opcao_c'],
+                $question['opcao_d'],
+                $question['resposta_correta'],
+                $question['explicacao'],
+                (int)$student['id'],
+                $recoveryId,
+            ]);
+            $totalQuestions++;
+        }
+        $notifyStudent->execute([
+            (int)$student['id'],
+            'Recuperação atribuída: ' . $topic,
+            "O professor {$teacherName} enviou uma recuperação individual de {$topic} com " . count($validQuestions) . ' questões. Acesse a aba Recuperação para realizá-la.',
+        ]);
     }
-
-    // Confirmação para o professor
-    $confirmTitle = "Reforço Coletivo Enviado";
-    $confirmMsg   = "Reforço de {$topic} ativado para toda a turma! {$inserted} questões salvas e {$notifiedCount} alunos notificados.";
-    $notifStmt->execute([$teacherId, $confirmTitle, $confirmMsg]);
+    $pdo->commit();
+} catch (Throwable $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+    throw $e;
 }
 
 echo json_encode([
-    'success'           => true,
-    'generated'         => $inserted,
-    'notified_students' => $notifiedCount,
-    'is_individual'     => !empty($targetStudentId),
-    'student_id'        => $targetStudentId,
-    'student_name'      => $targetStudent ? $targetStudent['name'] : null,
-    'topic'             => $topic
+    'success' => true,
+    'generated' => $totalQuestions,
+    'questions_per_student' => count($validQuestions),
+    'notified_students' => count($targets),
+    'is_individual' => $targetStudentId !== null,
+    'student_id' => $targetStudentId,
+    'student_name' => $targetStudent['name'] ?? null,
+    'class_id' => $classId,
+    'class_name' => $class['name'] ?? null,
+    'topic' => $topic,
 ]);

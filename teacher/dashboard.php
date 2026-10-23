@@ -3,6 +3,98 @@ $pageTitle = 'Painel do Professor';
 require_once __DIR__ . '/../includes/auth.php';
 requireTeacher();
 
+$classActionMessage = '';
+$classActionType = 'danger';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['create_class', 'move_student'], true)) {
+  if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+    $classActionMessage = 'Token de segurança inválido. Recarregue a página e tente novamente.';
+  } elseif ($_POST['action'] === 'create_class') {
+    $className = preg_replace('/\s+/', ' ', trim((string)($_POST['class_name'] ?? '')));
+    if ($className === '' || mb_strlen($className) > 20) {
+      $classActionMessage = 'Informe um nome de turma com até 20 caracteres.';
+    } else {
+      try {
+        $pdo->prepare('INSERT INTO classes (name) VALUES (?)')->execute([$className]);
+        $_SESSION['teacher_class_action_message'] = 'Turma criada com sucesso.';
+        $_SESSION['teacher_class_action_type'] = 'success';
+        header('Location: ' . BASE_URL . '/teacher/dashboard.php');
+        exit;
+      } catch (PDOException $e) {
+        if ($e->getCode() !== '23000') {
+          throw $e;
+        }
+        $classActionMessage = 'Já existe uma turma com esse nome.';
+      }
+    }
+  } else {
+    $studentId = filter_var($_POST['student_id'] ?? '', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    $rawClassId = $_POST['class_id'] ?? '';
+    $classId = $rawClassId === '' ? null : filter_var($rawClassId, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    if ($studentId === false || ($rawClassId !== '' && $classId === false)) {
+      $classActionMessage = 'Aluno ou turma inválidos.';
+    } else {
+      $stmt = $pdo->prepare('SELECT id FROM users WHERE id = ? AND role = "student"');
+      $stmt->execute([$studentId]);
+      if (!$stmt->fetch()) {
+        $classActionMessage = 'Aluno não encontrado.';
+      } else {
+        $pdo->beginTransaction();
+        try {
+          if ($classId !== null) {
+            $stmt = $pdo->prepare('SELECT id, name, max_students FROM classes WHERE id = ? FOR UPDATE');
+            $stmt->execute([$classId]);
+            $class = $stmt->fetch();
+            if (!$class) {
+              $pdo->rollBack();
+              $classActionMessage = 'Turma não encontrada.';
+            } else {
+              $stmt = $pdo->prepare('SELECT COUNT(*) FROM users WHERE class_id = ? AND role = "student" AND id <> ?');
+              $stmt->execute([$classId, $studentId]);
+              $studentCount = (int)$stmt->fetchColumn();
+              if ($studentCount >= (int)$class['max_students']) {
+                $pdo->rollBack();
+                $classActionMessage = "A turma {$class['name']} está cheia ({$studentCount}/{$class['max_students']}). Escolha outra turma.";
+              }
+            }
+          }
+
+          if (!$classActionMessage) {
+            $stmt = $pdo->prepare('UPDATE users SET class_id = ? WHERE id = ? AND role = "student"');
+            $stmt->execute([$classId, $studentId]);
+            $pdo->commit();
+            $_SESSION['teacher_class_action_message'] = 'Turma do aluno atualizada.';
+            $_SESSION['teacher_class_action_type'] = 'success';
+            header('Location: ' . BASE_URL . '/teacher/dashboard.php');
+            exit;
+          }
+        } catch (Throwable $e) {
+          if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+          }
+          throw $e;
+        }
+      }
+    }
+  }
+}
+
+$classActionMessage = $_SESSION['teacher_class_action_message'] ?? $classActionMessage;
+$classActionType = $_SESSION['teacher_class_action_type'] ?? $classActionType;
+unset($_SESSION['teacher_class_action_message'], $_SESSION['teacher_class_action_type']);
+
+$classStmt = $pdo->query('
+  SELECT c.id, c.name, c.max_students, COUNT(u.id) AS student_count
+  FROM classes c
+  LEFT JOIN users u ON u.class_id = c.id AND u.role = "student"
+  GROUP BY c.id
+  ORDER BY c.name
+');
+$classes = $classStmt->fetchAll();
+$selectedClassId = filter_var($_GET['class_id'] ?? '', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+if ($selectedClassId === false) {
+  $selectedClassId = null;
+}
+
 $user = getCurrentUser();
 
 // Alertas de desempenho nao lidos
@@ -16,6 +108,7 @@ $pdo->prepare('UPDATE notifications SET is_read=1 WHERE type="alert"')->execute(
 // Todos os alunos com estatisticas
 $stmt = $pdo->prepare('
   SELECT u.id, u.name, u.email, u.level, u.xp, u.avatar_color, u.profile_photo,
+    u.class_id, c.name AS class_name,
     COUNT(gs.id) AS total_games,
     COALESCE(SUM(gs.correct_answers), 0) AS total_correct,
     COALESCE(SUM(gs.wrong_answers), 0) AS total_wrong,
@@ -23,11 +116,13 @@ $stmt = $pdo->prepare('
     MAX(gs.played_at) AS last_played
   FROM users u
   LEFT JOIN game_sessions gs ON gs.user_id = u.id
+  LEFT JOIN classes c ON c.id = u.class_id
   WHERE u.role = "student"
-  GROUP BY u.id
+    AND (? IS NULL OR u.class_id = ?)
+  GROUP BY u.id, c.name
   ORDER BY total_score DESC
 ');
-$stmt->execute();
+$stmt->execute([$selectedClassId, $selectedClassId]);
 $students = $stmt->fetchAll();
 
 // Desempenho por jogo
@@ -59,11 +154,44 @@ require_once __DIR__ . '/../includes/header.php';
       <p class="teacher-subtitle">Acompanhe métricas de desempenho, alertas de lacuna de aprendizado e acione reforço individual ou para a turma.</p>
     </div>
     <div class="teacher-actions">
-      <a href="/vortex/teacher/reports.php" class="btn btn-primary btn-sm">
+      <a href="<?= BASE_URL ?>/teacher/reports.php" class="btn btn-primary btn-sm">
         <i class="fa-solid fa-file-lines"></i> Relatórios Detalhados
       </a>
     </div>
   </div>
+
+  <?php if ($classActionMessage): ?>
+    <div class="alert alert-<?= htmlspecialchars($classActionType) ?>" role="<?= $classActionType === 'success' ? 'status' : 'alert' ?>">
+      <i class="fa-solid <?= $classActionType === 'success' ? 'fa-circle-check' : 'fa-triangle-exclamation' ?>"></i>
+      <span><?= htmlspecialchars($classActionMessage) ?></span>
+    </div>
+  <?php endif; ?>
+
+  <section class="card teacher-classes-panel" aria-labelledby="classes-heading">
+    <div class="card-header">
+      <h2 class="section-heading" id="classes-heading"><i class="fa-solid fa-users"></i> Turmas</h2>
+    </div>
+    <div class="card-body">
+      <form method="POST" class="teacher-class-create-form">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+        <input type="hidden" name="action" value="create_class">
+        <label class="form-label" for="class_name">Criar nova turma</label>
+        <input class="form-control" id="class_name" name="class_name" maxlength="20" placeholder="Ex.: 8 A" required>
+        <button class="btn btn-primary btn-sm" type="submit"><i class="fa-solid fa-plus"></i> Criar turma</button>
+      </form>
+      <form method="GET" class="teacher-class-filter-form">
+        <label class="form-label" for="class-filter">Filtrar alunos por turma</label>
+        <select class="form-control" id="class-filter" name="class_id" onchange="this.form.submit()">
+          <option value="">Todas as turmas</option>
+          <?php foreach ($classes as $class): ?>
+            <option value="<?= (int)$class['id'] ?>" <?= (int)$selectedClassId === (int)$class['id'] ? 'selected' : '' ?>>
+              <?= htmlspecialchars($class['name']) ?> (<?= (int)$class['student_count'] ?>/<?= (int)$class['max_students'] ?>)
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </form>
+    </div>
+  </section>
 
   <!-- Banner de Auditoria Mensal Automática -->
   <div class="monthly-audit-banner">
@@ -116,20 +244,33 @@ require_once __DIR__ . '/../includes/header.php';
 
   <!-- Alertas de Desempenho -->
   <?php if (!empty($alerts)): ?>
-  <div class="alert-section" aria-live="polite">
+  <div class="alert-section" id="alertSection" aria-live="polite">
     <h2 class="section-heading text-danger">
-      <i class="fa-solid fa-triangle-exclamation text-danger"></i> Alertas de Dificuldade Ativos (<?= count($alerts) ?>)
+      <i class="fa-solid fa-triangle-exclamation text-danger"></i>
+      Alertas de Dificuldade Ativos
+      <span class="alert-count-badge" id="alertCountBadge"><?= count($alerts) ?></span>
     </h2>
-    <?php foreach ($alerts as $a): ?>
-    <div class="alert-item">
+    <div id="alertList">
+    <?php foreach ($alerts as $idx => $a): ?>
+    <div class="alert-item alert-animated" data-idx="<?= $idx ?>" style="--delay:<?= $idx * 80 ?>ms">
       <div class="alert-item-icon"><i class="fa-solid fa-bell"></i></div>
-      <div>
+      <div style="flex:1;min-width:0;">
         <div class="alert-item-title"><?= htmlspecialchars($a['title']) ?></div>
         <div class="alert-item-msg"><?= htmlspecialchars($a['message']) ?></div>
         <div class="alert-item-time"><?= date('d/m/Y H:i', strtotime($a['created_at'])) ?></div>
       </div>
+      <button class="alert-dismiss-btn" onclick="dismissAlert(this)" title="Dispensar alerta" aria-label="Dispensar alerta">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
     </div>
     <?php endforeach; ?>
+    </div>
+    <div id="alertsAllDone" style="display:none;">
+      <div class="alert alert-success mb-2" role="status">
+        <i class="fa-solid fa-circle-check"></i>
+        <span>Todos os alertas foram revisados!</span>
+      </div>
+    </div>
   </div>
   <?php else: ?>
   <div class="alert alert-success mb-4" role="status">
@@ -213,8 +354,8 @@ require_once __DIR__ . '/../includes/header.php';
 
   <!-- Ranking e Desempenho dos Alunos -->
   <div class="section-header-flex">
-    <h2 class="section-heading"><i class="fa-solid fa-ranking-star"></i> Ranking e Acompanhamento de Alunos</h2>
-    <span class="section-hint"><i class="fa-solid fa-info-circle"></i> Clique em "Aplicar" para direcionar recuperação a um aluno específico.</span>
+    <h2 class="section-heading"><i class="fa-solid fa-medal"></i> Ranking e Acompanhamento de Alunos</h2>
+    <span class="section-hint"><i class="fa-solid fa-circle-info"></i> Clique em "Aplicar" para direcionar recuperação a um aluno específico.</span>
   </div>
   <div class="card">
     <div class="card-body-flush overflow-x-auto">
@@ -223,6 +364,7 @@ require_once __DIR__ . '/../includes/header.php';
           <tr>
             <th scope="col">Posição</th>
             <th scope="col">Aluno</th>
+            <th scope="col">Turma</th>
             <th scope="col">Nível</th>
             <th scope="col">XP</th>
             <th scope="col">Partidas</th>
@@ -254,6 +396,7 @@ require_once __DIR__ . '/../includes/header.php';
                 </div>
                 <div>
                   <div class="font-bold"><?= htmlspecialchars($s['name']) ?></div>
+                  <small class="student-email"><?= htmlspecialchars($s['email']) ?></small>
                   <?php if ($danger): ?>
                     <div class="student-danger-badge">
                       <i class="fa-solid fa-triangle-exclamation"></i> Taxa de erro > 60%
@@ -261,6 +404,23 @@ require_once __DIR__ . '/../includes/header.php';
                   <?php endif; ?>
                 </div>
               </div>
+            </td>
+            <td>
+              <div><?= htmlspecialchars($s['class_name'] ?? 'Sem turma') ?></div>
+              <form method="POST" class="student-class-form">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                <input type="hidden" name="action" value="move_student">
+                <input type="hidden" name="student_id" value="<?= (int)$s['id'] ?>">
+                <select class="form-control" name="class_id" aria-label="Turma de <?= htmlspecialchars($s['name']) ?>">
+                  <option value="">Sem turma</option>
+                  <?php foreach ($classes as $class): ?>
+                    <option value="<?= (int)$class['id'] ?>" <?= (int)$s['class_id'] === (int)$class['id'] ? 'selected' : '' ?>>
+                      <?= htmlspecialchars($class['name']) ?> (<?= (int)$class['student_count'] ?>/<?= (int)$class['max_students'] ?>)
+                    </option>
+                  <?php endforeach; ?>
+                </select>
+                <button class="btn btn-secondary btn-sm" type="submit">Salvar</button>
+              </form>
             </td>
             <td><span class="level-badge"><i class="fa-solid fa-star"></i> Nv <?= $s['level'] ?></span></td>
             <td><strong><?= $s['xp'] ?></strong></td>
@@ -274,7 +434,7 @@ require_once __DIR__ . '/../includes/header.php';
             <td style="text-align: center;">
               <button type="button" 
                       class="btn-recovery-trigger"
-                      onclick="selectStudentForRecovery(<?= (int)$s['id'] ?>, '<?= htmlspecialchars(addslashes($s['name'])) ?>', <?= $acc ?>)"
+                      onclick="selectStudentForRecovery(<?= (int)$s['id'] ?>, <?= htmlspecialchars(json_encode($s['name'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT), ENT_QUOTES, 'UTF-8') ?>, <?= $acc ?>)"
                       title="Aplicar recuperação individual para <?= htmlspecialchars($s['name']) ?>"
                       aria-label="Aplicar recuperação individual para <?= htmlspecialchars($s['name']) ?>">
                 <i class="fa-solid fa-bullseye"></i> Aplicar
@@ -284,7 +444,7 @@ require_once __DIR__ . '/../includes/header.php';
           <?php endforeach; ?>
           <?php if (empty($students)): ?>
           <tr>
-            <td colspan="10" class="table-empty-td">
+            <td colspan="11" class="table-empty-td">
               Nenhum aluno cadastrado no sistema ainda.
             </td>
           </tr>
@@ -301,24 +461,24 @@ require_once __DIR__ . '/../includes/header.php';
         <h2 class="ai-generator-title">
           <i class="fa-solid fa-brain text-primary"></i> Gerador de Questões de Reforço e Recuperação
         </h2>
-        <p class="ai-generator-desc">O motor pedagógico analisa o histórico de acertos e erros para formular questões personalizadas — você pode aplicar para um <strong>aluno específico</strong> ou para a <strong>turma inteira</strong>.</p>
+        <p class="ai-generator-desc">O motor pedagógico analisa o histórico de acertos e erros para formular questões personalizadas. Escolha um aluno ou selecione uma turma inteira; cada aluno receberá uma recuperação individual.</p>
       </div>
       <span class="ai-mode-pill" id="aiModeIndicator">
-        <i class="fa-solid fa-users"></i> Modo Coletivo
+        <i class="fa-solid fa-user-graduate"></i> Escolha o destinatário
       </span>
     </div>
 
     <!-- Alerta dinâmico de Aluno Selecionado -->
     <div id="targetStudentNotice" class="target-student-notice d-none" role="status" aria-live="polite">
       <div class="target-notice-content">
-        <i class="fa-solid fa-bullseye-arrow target-notice-icon"></i>
+        <i class="fa-solid fa-bullseye target-notice-icon"></i>
         <div>
           <strong id="targetStudentNoticeName">Aluno Selecionado</strong>
           <span id="targetStudentNoticeDesc">A recuperação será direcionada exclusivamente para este aluno.</span>
         </div>
       </div>
-      <button type="button" class="btn btn-sm btn-ghost-danger" onclick="clearSelectedStudent()" title="Remover seleção individual e voltar para a turma inteira">
-        <i class="fa-solid fa-xmark"></i> Cancelar Individual
+      <button type="button" class="btn btn-sm btn-ghost-danger" onclick="clearSelectedStudent()" title="Limpar destinatário selecionado">
+        <i class="fa-solid fa-xmark"></i> Limpar seleção
       </button>
     </div>
 
@@ -329,14 +489,21 @@ require_once __DIR__ . '/../includes/header.php';
           <i class="fa-solid fa-user-graduate"></i> Destinatário:
         </label>
         <select id="studentSelect" class="form-control ai-select-full" onchange="onStudentSelectChange(this)" aria-label="Destinatário da recuperação">
-          <option value="all">👥 Toda a Turma (Reforço Geral)</option>
+          <option value="">Selecione um aluno ou uma turma inteira</option>
           <optgroup label="Alunos Individuais">
             <?php foreach ($students as $stu):
               $sTotal = $stu['total_correct'] + $stu['total_wrong'];
               $sAcc = $sTotal > 0 ? round($stu['total_correct'] / $sTotal * 100) : 0;
             ?>
-              <option value="<?= (int)$stu['id'] ?>" data-name="<?= htmlspecialchars($stu['name']) ?>" data-acc="<?= $sAcc ?>">
-                👤 <?= htmlspecialchars($stu['name']) ?> (Aprov: <?= $sAcc ?>%)
+              <option value="student:<?= (int)$stu['id'] ?>" data-name="<?= htmlspecialchars($stu['name']) ?>" data-email="<?= htmlspecialchars($stu['email']) ?>" data-acc="<?= $sAcc ?>">
+                <?= htmlspecialchars($stu['name']) ?> — <?= htmlspecialchars($stu['email']) ?>
+              </option>
+            <?php endforeach; ?>
+          </optgroup>
+          <optgroup label="Turma inteira: escolha a turma">
+            <?php foreach ($classes as $class): ?>
+              <option value="class:<?= (int)$class['id'] ?>" data-name="<?= htmlspecialchars($class['name']) ?>" <?= (int)$class['student_count'] === 0 ? 'disabled' : '' ?>>
+                Turma <?= htmlspecialchars($class['name']) ?> (<?= (int)$class['student_count'] ?>/<?= (int)$class['max_students'] ?> alunos)
               </option>
             <?php endforeach; ?>
           </optgroup>
@@ -374,7 +541,15 @@ async function reRunMonthlyAudit(){
   var origHtml = btn.innerHTML;
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Auditando...';
   try {
-    var res = await fetch('/vortex/api/monthly_recovery_check.php?force=1');
+    var token = getCsrfToken();
+    var res = await fetch('<?= BASE_URL ?>/api/monthly_recovery_check.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': token
+      },
+      body: JSON.stringify({ force: '1', csrf_token: token })
+    });
     var data = await res.json();
     if(data.success){
       showToast('Auditoria mensal reexecutada! ' + data.students_in_recovery + ' aluno(s) em recuperação.', 'success');
@@ -402,29 +577,32 @@ function onStudentSelectChange(sel){
   var indicator = document.getElementById('aiModeIndicator');
   var btnText = document.getElementById('btnGenerateText');
 
-  if(val === 'all' || !val){
+  if(!val){
     notice.classList.add('d-none');
-    indicator.innerHTML = '<i class="fa-solid fa-users"></i> Modo Coletivo';
+    indicator.innerHTML = '<i class="fa-solid fa-users"></i> Selecione o destinatário';
     indicator.className = 'ai-mode-pill';
-    btnText.textContent = 'Gerar Reforço para Turma';
+    btnText.textContent = 'Gerar Recuperação';
   } else {
     var opt = sel.options[sel.selectedIndex];
+    var isClass = val.indexOf('class:') === 0;
     var name = opt.getAttribute('data-name') || opt.textContent;
     var acc = opt.getAttribute('data-acc') || '0';
 
-    document.getElementById('targetStudentNoticeName').textContent = 'Recuperação Individual: ' + name;
-    document.getElementById('targetStudentNoticeDesc').textContent = 'Aproveitamento atual: ' + acc + '%. O aluno receberá uma notificação exclusiva no painel dele.';
+    document.getElementById('targetStudentNoticeName').textContent = isClass ? 'Recuperação da turma ' + name : 'Recuperação individual: ' + name;
+    document.getElementById('targetStudentNoticeDesc').textContent = isClass
+      ? 'Será criada uma recuperação separada e privada para cada aluno desta turma.'
+      : 'E-mail: ' + (opt.getAttribute('data-email') || '') + '. Aproveitamento atual: ' + acc + '%.';
     notice.classList.remove('d-none');
 
-    indicator.innerHTML = '<i class="fa-solid fa-user-check"></i> Recuperação Individual';
-    indicator.className = 'ai-mode-pill individual';
-    btnText.textContent = 'Aplicar Recuperação para ' + name.split(' ')[0];
+    indicator.innerHTML = isClass ? '<i class="fa-solid fa-users"></i> Recuperação por turma' : '<i class="fa-solid fa-user-check"></i> Recuperação individual';
+    indicator.className = isClass ? 'ai-mode-pill' : 'ai-mode-pill individual';
+    btnText.textContent = isClass ? 'Aplicar para turma ' + name : 'Aplicar para ' + name.split(' ')[0];
   }
 }
 
 function selectStudentForRecovery(id, name, acc){
   var sel = document.getElementById('studentSelect');
-  sel.value = id;
+  sel.value = 'student:' + id;
   onStudentSelectChange(sel);
 
   var card = document.getElementById('aiGeneratorCard');
@@ -439,51 +617,57 @@ function selectStudentForRecovery(id, name, acc){
 
 function clearSelectedStudent(){
   var sel = document.getElementById('studentSelect');
-  sel.value = 'all';
+  sel.value = '';
   onStudentSelectChange(sel);
-  showToast('Modo alterado para toda a turma.', 'info');
+  showToast('Selecione um aluno ou uma turma para atribuir a recuperação.', 'info');
 }
 
 async function generateAI(){
   var topic     = document.getElementById('topicSelect').value;
   var gameId    = parseInt(document.getElementById('gameIdInput').value) || 1;
-  var studentId = document.getElementById('studentSelect').value;
+  var recipient = document.getElementById('studentSelect').value;
   var btn       = document.getElementById('btnGenerate');
 
   btn.disabled = true;
   var originalHtml = btn.innerHTML;
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processando...';
 
-  var isIndiv = (studentId !== 'all' && studentId !== '');
-  showToast(isIndiv ? 'Formulando recuperação individual com IA...' : 'Processando questões de reforço para a turma...', 'info');
+  if(!recipient){
+    showToast('Selecione um aluno ou uma turma.', 'warning');
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
+    return;
+  }
+  var recipientParts = recipient.split(':');
+  var isIndiv = recipientParts[0] === 'student';
+  var classId = recipientParts[0] === 'class' ? parseInt(recipientParts[1], 10) : null;
+  var studentId = isIndiv ? parseInt(recipientParts[1], 10) : null;
+  showToast(isIndiv ? 'Formulando recuperação individual com IA...' : 'Formulando uma recuperação por aluno da turma...', 'info');
 
   try {
     var token = getCsrfToken();
-    var res = await fetch('/vortex/api/generate_questions.php', {
+    var res = await fetch('<?= BASE_URL ?>/api/generate_questions.php', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-CSRF-Token': token
       },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         topic: topic, 
         game_id: gameId, 
         student_id: studentId,
+        class_id: classId,
         csrf_token: token 
       })
     });
     var data = await res.json();
     if(data.success){
-      var msg = data.is_individual 
-        ? 'Sucesso! Geradas ' + data.generated + ' questões de recuperação para ' + (data.student_name || 'o aluno') + '!'
-        : 'Sucesso! Geradas ' + data.generated + ' questões de reforço para toda a turma (' + data.notified_students + ' alunos notificados)!';
+      var msg = data.is_individual
+        ? 'Recuperação criada para ' + (data.student_name || 'o aluno') + ' com ' + data.generated + ' questões.'
+        : 'Recuperações criadas para ' + data.notified_students + ' aluno(s), cada uma com ' + data.questions_per_student + ' questões.';
       showToast(msg, 'success', 6500);
 
-      if(data.is_individual){
-        setTimeout(function(){
-          clearSelectedStudent();
-        }, 3000);
-      }
+      setTimeout(function(){ window.location.reload(); }, 2500);
     } else {
       showToast('Aviso: ' + (data.error || 'Falha ao processar recuperação'), 'error');
     }
@@ -493,6 +677,47 @@ async function generateAI(){
     btn.disabled = false;
     btn.innerHTML = originalHtml;
   }
+}
+function dismissAlert(btn) {
+  var item  = btn.closest('.alert-item');
+  var list  = document.getElementById('alertList');
+  if (!item || !list) return;
+
+  // Trigger slide-out animation
+  item.classList.add('dismissing');
+
+  item.addEventListener('animationend', function () {
+    item.remove();
+
+    // Update the count badge
+    var remaining = list.querySelectorAll('.alert-item').length;
+    var badge = document.getElementById('alertCountBadge');
+    if (badge) {
+      badge.textContent = remaining;
+      badge.style.transform = 'scale(1.4)';
+      setTimeout(function () { badge.style.transform = ''; }, 250);
+    }
+
+    // If no alerts left, show "all done" message and hide section heading
+    if (remaining === 0) {
+      var done = document.getElementById('alertsAllDone');
+      if (done) {
+        done.style.display = 'block';
+        done.style.opacity = '0';
+        done.style.transition = 'opacity 0.4s ease';
+        requestAnimationFrame(function () { done.style.opacity = '1'; });
+      }
+      var section = document.getElementById('alertSection');
+      if (section) {
+        var heading = section.querySelector('.section-heading');
+        if (heading) {
+          heading.style.transition = 'opacity 0.3s ease';
+          heading.style.opacity = '0';
+          setTimeout(function () { heading.style.display = 'none'; }, 300);
+        }
+      }
+    }
+  }, { once: true });
 }
 </script>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

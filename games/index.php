@@ -1,18 +1,17 @@
 <?php
 $pageTitle = 'Jogos';
 require_once __DIR__ . '/../includes/auth.php';
+requireLogin();
 
 $stmt = $pdo->prepare('SELECT * FROM games ORDER BY id');
 $stmt->execute();
 $games = $stmt->fetchAll();
 
 $userStats = [];
-if (isLoggedIn()) {
-    $stmt = $pdo->prepare('SELECT game_id, MAX(score) AS best, COUNT(*) AS plays FROM game_sessions WHERE user_id=? GROUP BY game_id');
-    $stmt->execute([$_SESSION['user_id']]);
-    foreach ($stmt->fetchAll() as $s) {
-        $userStats[$s['game_id']] = $s;
-    }
+$stmt = $pdo->prepare('SELECT game_id, MAX(score) AS best, COUNT(*) AS plays FROM game_sessions WHERE user_id=? GROUP BY game_id');
+$stmt->execute([$_SESSION['user_id']]);
+foreach ($stmt->fetchAll() as $s) {
+    $userStats[$s['game_id']] = $s;
 }
 require_once __DIR__ . '/../includes/header.php';
 ?>
@@ -22,13 +21,6 @@ require_once __DIR__ . '/../includes/header.php';
     <h1 class="section-title">Escolha sua aventura</h1>
     <p class="section-subtitle">Três jogos interativos e gamificados para dominar conteúdos de Matemática do Ensino Fundamental II.</p>
   </div>
-
-  <?php if (!isLoggedIn()): ?>
-  <div class="alert alert-info max-w-md mb-5" role="alert">
-    <i class="fa-solid fa-circle-info"></i>
-    <span><a href="/vortex/login.php" class="font-bold text-primary">Entre na sua conta</a> para salvar seu progresso, subir de nivel e ganhar XP!</span>
-  </div>
-  <?php endif; ?>
 
   <div class="game-grid">
     <?php
@@ -50,7 +42,7 @@ require_once __DIR__ . '/../includes/header.php';
 
     foreach ($games as $g):
         $stats    = $userStats[$g['id']] ?? null;
-        $url      = '/vortex/games/' . $g['slug'] . '.php';
+        $url      = BASE_URL . '/games/' . $g['slug'] . '.php';
         $img      = $imgs[$g['slug']] ?? 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800&q=80';
         $icon     = $icons[$g['slug']] ?? 'fa-gamepad';
         $cardCls  = $cardClasses[$g['slug']] ?? '';

@@ -8,18 +8,20 @@
   --primary-dark: #3730A3;
   --primary-light: #818CF8;
   --secondary: #0D9488;
-  --accent: #F59E0B;
-  --success: #10B981;
-  --danger: #EF4444;
-  --warning: #F97316;
-  --info: #0EA5E9;
+  --accent: #D97706;
+  --success: #059669;
+  --danger: #DC2626;
+  --warning: #EA580C;
+  --info: #0284C7;
   --bg: #F8FAFC;
   --bg-card: #FFFFFF;
   --bg-secondary: #F1F5F9;
+  --surface: #FFFFFF;
+  --surface-2: #F1F5F9;
   --text: #0F172A;
-  --text-muted: #64748B;
-  --text-light: #94A3B8;
-  --border: #E2E8F0;
+  --text-muted: #334155;
+  --text-light: #64748B;
+  --border: #CBD5E1;
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
   --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.09), 0 4px 6px -4px rgba(0, 0, 0, 0.07);
@@ -38,6 +40,8 @@
   --bg: #0B0F19;
   --bg-card: #151D2E;
   --bg-secondary: #1E293B;
+  --surface: #151D2E;
+  --surface-2: #1E293B;
   --text: #F8FAFC;
   --text-muted: #94A3B8;
   --text-light: #64748B;
@@ -777,9 +781,14 @@ input, select, textarea {
 .text-accent  { color: var(--accent) !important; }
 .text-muted   { color: var(--text-muted) !important; }
 .text-blue    { color: #2563EB !important; }
+.text-teal    { color: #0D9488 !important; }
 
-.font-bold  { font-weight: 700 !important; }
-.font-heavy { font-weight: 800 !important; }
+.font-bold  { font-weight: 700; }
+.font-heavy:not(.fa-solid):not(.fa-regular):not(.fa-brands) { font-weight: 800; }
+
+.game-card-fractions .game-card-icon-wrap i { color: #DC2626 !important; }
+.game-card-geometry .game-card-icon-wrap i  { color: #2563EB !important; }
+.game-card-mental .game-card-icon-wrap i    { color: #0D9488 !important; }
 
 .max-w-md { max-width: 640px; margin-left: auto; margin-right: auto; }
 .table-empty-td { text-align: center; padding: 2.5rem; color: var(--text-muted); }

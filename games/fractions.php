@@ -1,15 +1,18 @@
 <?php
-$pageTitle = 'Chef das Fracoes';
+$pageTitle = 'Chef das Frações';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/question_generator.php';
 requireLogin();
 
 $stmt = $pdo->prepare('SELECT * FROM games WHERE slug=?');
 $stmt->execute(['fractions']);
 $game = $stmt->fetch();
+if (!$game) {
+    $game = ['id' => 1, 'slug' => 'fractions', 'name' => 'Chef das Frações', 'topic' => 'Frações e Razões'];
+}
 
-$stmt = $pdo->prepare('SELECT * FROM questions WHERE game_id=? ORDER BY RAND() LIMIT 8');
-$stmt->execute([$game['id']]);
-$questions = $stmt->fetchAll();
+// Gera 8 questões aleatórias e dinâmicas com progressão adaptativa (Fácil -> Médio -> Difícil)
+$questions = generateDynamicGameQuestions('fractions', 8);
 
 require_once __DIR__ . '/../includes/header.php';
 ?>
@@ -126,10 +129,10 @@ require_once __DIR__ . '/../includes/header.php';
         <button class="btn btn-primary" onclick="restartGame()">
           <i class="fa-solid fa-rotate-right"></i> Jogar Novamente
         </button>
-        <a href="/vortex/dashboard.php" class="btn btn-secondary">
+        <a href="<?= BASE_URL ?>/dashboard.php" class="btn btn-secondary">
           <i class="fa-solid fa-chart-line"></i> Dashboard
         </a>
-        <a href="/vortex/games/geometry.php" class="btn btn-success">
+        <a href="<?= BASE_URL ?>/games/geometry.php" class="btn btn-success">
           <i class="fa-solid fa-city"></i> Construtor de Cidades
         </a>
       </div>
@@ -141,7 +144,7 @@ require_once __DIR__ . '/../includes/header.php';
 // Gabarito removido: apenas campos de exibição são enviados ao cliente
 var questions = <?= json_encode(array_values(array_map(function($q){
     return [
-        'id'            => (int)$q['id'],
+        'id'            => $q['id'],
         'question_text' => $q['question_text'],
         'option_a'      => $q['option_a'],
         'option_b'      => $q['option_b'],
@@ -171,6 +174,10 @@ var scenarios = [
 ];
 
 function loadQuestion(){
+  if(!questions || questions.length === 0){
+    document.getElementById('questionText').textContent = 'Carregando questões...';
+    return;
+  }
   if(current >= questions.length){ showResult(); return; }
   var q = questions[current];
   answered = false; hintUsed = false;
@@ -327,16 +334,7 @@ function showResult(){
 }
 
 function restartGame(){
-  current = 0; score = 0; correct = 0; wrong = 0; answered = false; startTime = Date.now();
-  document.getElementById('score').textContent = '0';
-  document.getElementById('questionArea').classList.remove('d-none');
-  document.getElementById('resultArea').classList.add('d-none');
-  ['s1','s2','s3'].forEach(function(id){
-    var el = document.getElementById(id);
-    if(el) el.classList.remove('lit');
-  });
-  questions.sort(function(){ return Math.random() - 0.5; });
-  loadQuestion();
+  window.location.reload();
 }
 
 document.addEventListener('DOMContentLoaded', function(){ loadQuestion(); });
