@@ -1,43 +1,18 @@
 <?php
-$pageTitle = 'Chef das Fracoes';
+$pageTitle = 'Chef das Frações';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/question_generator.php';
 requireLogin();
 
 $stmt = $pdo->prepare('SELECT * FROM games WHERE slug=?');
 $stmt->execute(['fractions']);
 $game = $stmt->fetch();
 if (!$game) {
-    $game = ['id' => 1, 'slug' => 'fractions', 'name' => 'Chef das Fracoes', 'topic' => 'Fracoes e Razoes'];
+    $game = ['id' => 1, 'slug' => 'fractions', 'name' => 'Chef das Frações', 'topic' => 'Frações e Razões'];
 }
 
-$questions = [];
-if (!empty($game['id'])) {
-    $stmt = $pdo->prepare('
-        SELECT *
-        FROM questions
-        WHERE game_id = ?
-          AND COALESCE(is_ai_generated, 0) = 0
-          AND target_user_id IS NULL
-          AND recovery_id IS NULL
-        ORDER BY RAND()
-        LIMIT 8
-    ');
-    $stmt->execute([$game['id']]);
-    $questions = $stmt->fetchAll();
-}
-
-if (empty($questions)) {
-    $questions = [
-        ['id' => 1, 'question_text' => 'A receita pede 1/2 xicara de farinha. Para fazer o dobro da receita, quanto voce precisa?', 'option_a' => '1/2 xicara', 'option_b' => '1 xicara inteira', 'option_c' => '2 xicaras', 'option_d' => '1/4 de xicara', 'difficulty' => 'easy'],
-        ['id' => 2, 'question_text' => 'Uma pizza foi cortada em 8 pedacos iguais. Joao comeu 3 pedacos. Que fracao da pizza ele comeu?', 'option_a' => '1/4 da pizza', 'option_b' => '3/5 da pizza', 'option_c' => '3/8 da pizza', 'option_d' => '5/8 da pizza', 'difficulty' => 'easy'],
-        ['id' => 3, 'question_text' => 'Qual e a metade exata da fracao 3/4?', 'option_a' => '3/2', 'option_b' => '1/4', 'option_c' => '3/8', 'option_d' => '6/4', 'difficulty' => 'easy'],
-        ['id' => 4, 'question_text' => 'Uma receita usa 2/3 de copo de leite. Qual fracao do copo restou?', 'option_a' => '1/3 de copo', 'option_b' => '2/3 de copo', 'option_c' => '1/2 de copo', 'option_d' => '3/3 de copo', 'difficulty' => 'easy'],
-        ['id' => 5, 'question_text' => 'Qual e o resultado da soma de 1/4 + 1/4?', 'option_a' => '2/8', 'option_b' => '1/2', 'option_c' => '1/8', 'option_d' => '3/4', 'difficulty' => 'easy'],
-        ['id' => 6, 'question_text' => 'Uma jarra contem 3/4 de suco. Voce bebe 1/4. Quanto resta na jarra?', 'option_a' => '1/4 de suco', 'option_b' => '2/4 (ou 1/2) de suco', 'option_c' => '3/8 de suco', 'option_d' => '1 jarra inteira', 'difficulty' => 'easy'],
-        ['id' => 7, 'question_text' => 'Se voce precisa de 3/5 de litro de calda e ja preparou 1/5 de litro, quanto ainda falta?', 'option_a' => '2/5 de litro', 'option_b' => '4/5 de litro', 'option_c' => '1/5 de litro', 'option_d' => '2/10 de litro', 'difficulty' => 'easy'],
-        ['id' => 8, 'question_text' => 'Qual destas fracoes e exatamente equivalente a 2/4?', 'option_a' => '1/3', 'option_b' => '1/2', 'option_c' => '3/4', 'option_d' => '2/8', 'difficulty' => 'easy'],
-    ];
-}
+// Gera 8 questões aleatórias e dinâmicas com progressão adaptativa (Fácil -> Médio -> Difícil)
+$questions = generateDynamicGameQuestions('fractions', 8);
 
 require_once __DIR__ . '/../includes/header.php';
 ?>
@@ -169,7 +144,7 @@ require_once __DIR__ . '/../includes/header.php';
 // Gabarito removido: apenas campos de exibição são enviados ao cliente
 var questions = <?= json_encode(array_values(array_map(function($q){
     return [
-        'id'            => (int)$q['id'],
+        'id'            => $q['id'],
         'question_text' => $q['question_text'],
         'option_a'      => $q['option_a'],
         'option_b'      => $q['option_b'],
@@ -359,16 +334,7 @@ function showResult(){
 }
 
 function restartGame(){
-  current = 0; score = 0; correct = 0; wrong = 0; answered = false; startTime = Date.now();
-  document.getElementById('score').textContent = '0';
-  document.getElementById('questionArea').classList.remove('d-none');
-  document.getElementById('resultArea').classList.add('d-none');
-  ['s1','s2','s3'].forEach(function(id){
-    var el = document.getElementById(id);
-    if(el) el.classList.remove('lit');
-  });
-  questions.sort(function(){ return Math.random() - 0.5; });
-  loadQuestion();
+  window.location.reload();
 }
 
 document.addEventListener('DOMContentLoaded', function(){ loadQuestion(); });

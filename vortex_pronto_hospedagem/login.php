@@ -27,19 +27,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$email || !$password) {
             $error = 'Preencha todos os campos.';
         } else {
-            $r = loginUser($email, $password, $rememberMe);
+            // Passa o role esperado — loginUser só cria sessão/cookie se bater
+            $r = loginUser($email, $password, $rememberMe, $selectedRole);
             if ($r['success']) {
-                // Verifica se o role no banco bate com o selecionado
-                if ($r['role'] !== $selectedRole) {
-                    $label = $selectedRole === 'teacher' ? 'Professor' : 'Aluno';
-                    $error = "Esta conta não está registrada como {$label}. Selecione o perfil correto.";
-                    // Desfaz a sessão criada pelo loginUser
-                    session_destroy();
-                    session_start();
-                } else {
-                    header('Location: ' . BASE_URL . '/index.php');
-                    exit;
-                }
+                header('Location: ' . BASE_URL . '/index.php');
+                exit;
             } else {
                 $error = $r['message'];
             }

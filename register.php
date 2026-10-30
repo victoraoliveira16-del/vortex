@@ -16,7 +16,7 @@ $classStmt = $pdo->query('
     GROUP BY c.id
     ORDER BY c.name
 ');
-$classes = $classStmt->fetchAll();
+$classes = $classStmt ? $classStmt->fetchAll() : [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Verificação CSRF
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {

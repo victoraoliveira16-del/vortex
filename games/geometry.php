@@ -341,7 +341,7 @@ function showResult(){
     }(i), i * 250);
   }
 
-  saveScore(gameId, elapsed, 'easy', score, correct, wrong);
+  saveScore(gameId, elapsed, 'easy');
 }
 
 function restartGame(){

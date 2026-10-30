@@ -220,7 +220,7 @@ async function checkAnswer(gameId, questionId, chosen, hintUsed){
 }
 
 // Async Score Saving API — score vem do servidor, não do cliente
-async function saveScore(gameId, timeSpent, difficulty, fallbackScore, fallbackCorrect, fallbackWrong){
+async function saveScore(gameId, timeSpent, difficulty){
   try {
     var token = getCsrfToken();
     var res = await fetch(BASE_URL + '/api/save_score.php', {
@@ -233,10 +233,7 @@ async function saveScore(gameId, timeSpent, difficulty, fallbackScore, fallbackC
         csrf_token: token,
         game_id: gameId,
         time_spent: timeSpent,
-        difficulty: difficulty,
-        score: fallbackScore || 0,
-        correct: fallbackCorrect || 0,
-        wrong: fallbackWrong || 0
+        difficulty: difficulty
       })
     });
     var data = await res.json();
@@ -244,6 +241,8 @@ async function saveScore(gameId, timeSpent, difficulty, fallbackScore, fallbackC
       animateXP(data.xp_gained);
       displayPhaseRewards(data);
       showToast('Fase concluída! +' + data.xp_gained + ' XP ganhos!', 'success');
+    } else {
+      showToast((data && data.error) || 'Não foi possível registrar a partida.', 'error');
     }
     return data;
   } catch(e) {

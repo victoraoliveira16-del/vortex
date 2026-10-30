@@ -3,6 +3,128 @@ $pageTitle = 'Painel do Professor';
 require_once __DIR__ . '/../includes/auth.php';
 requireTeacher();
 
+$studentActionMessage = '';
+$studentActionType = 'danger';
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+  $studentActionMessage = $_SESSION['teacher_student_action_message'] ?? '';
+  $studentActionType = $_SESSION['teacher_student_action_type'] ?? 'success';
+}
+unset($_SESSION['teacher_student_action_message'], $_SESSION['teacher_student_action_type']);
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete_student') {
+  if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+    $studentActionMessage = 'Token de segurança inválido. Recarregue a página e tente novamente.';
+  } else {
+    $studentId = filter_var($_POST['student_id'] ?? '', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    if ($studentId === false) {
+      $studentActionMessage = 'Aluno inválido.';
+    } else {
+      $stmt = $pdo->prepare('SELECT name, email, profile_photo FROM users WHERE id = ? AND role = "student"');
+      $stmt->execute([$studentId]);
+      $studentToDelete = $stmt->fetch();
+
+      if (!$studentToDelete) {
+        $studentActionMessage = 'O aluno não foi encontrado ou já foi removido.';
+      } else {
+        $pdo->beginTransaction();
+        try {
+          $pdo->prepare('DELETE FROM questions WHERE target_user_id = ?')->execute([$studentId]);
+
+          $stmt = $pdo->prepare("
+            UPDATE notifications
+            SET title = REPLACE(REPLACE(title, ?, '[aluno removido]'), ?, '[dados removidos]'),
+                message = REPLACE(REPLACE(message, ?, '[aluno removido]'), ?, '[dados removidos]')
+            WHERE type = 'alert'
+              AND (
+                INSTR(title, ?) > 0 OR INSTR(title, ?) > 0
+                OR INSTR(message, ?) > 0 OR INSTR(message, ?) > 0
+              )
+          ");
+          $stmt->execute([
+            $studentToDelete['name'], $studentToDelete['email'],
+            $studentToDelete['name'], $studentToDelete['email'],
+            $studentToDelete['name'], $studentToDelete['email'],
+            $studentToDelete['name'], $studentToDelete['email'],
+          ]);
+
+          $audits = $pdo->query('SELECT id, students_in_recovery, details_json FROM monthly_recovery_audits FOR UPDATE')->fetchAll();
+          $updateAudit = $pdo->prepare('
+            UPDATE monthly_recovery_audits
+            SET details_json = ?, students_in_recovery = GREATEST(students_in_recovery - ?, 0)
+            WHERE id = ?
+          ');
+          foreach ($audits as $audit) {
+            $details = json_decode($audit['details_json'] ?? '[]', true, 512, JSON_THROW_ON_ERROR);
+            if (!is_array($details)) {
+              throw new UnexpectedValueException('Formato inválido nos detalhes da auditoria mensal.');
+            }
+            $remainingDetails = array_values(array_filter(
+              $details,
+              static fn($item): bool => !is_array($item) || (int)($item['student_id'] ?? 0) !== (int)$studentId
+            ));
+            $removedDetails = count($details) - count($remainingDetails);
+            if ($removedDetails > 0) {
+              $updateAudit->execute([
+                json_encode($remainingDetails, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+                $removedDetails,
+                $audit['id'],
+              ]);
+            }
+          }
+
+          $stmt = $pdo->prepare('DELETE FROM users WHERE id = ? AND role = "student"');
+          $stmt->execute([$studentId]);
+          $studentDeleted = $stmt->rowCount() === 1;
+          if ($studentDeleted) {
+            $pdo->commit();
+          } else {
+            $pdo->rollBack();
+          }
+        } catch (Throwable $e) {
+          if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+          }
+          throw $e;
+        }
+
+        if ($studentDeleted) {
+          $studentActionMessage = 'A conta do aluno e os dados associados foram removidos.';
+          $studentActionType = 'success';
+
+          $photoPath = parse_url((string)$studentToDelete['profile_photo'], PHP_URL_PATH);
+          $photoUrlPrefix = rtrim(BASE_URL, '/') . '/assets/uploads/profiles/';
+          $uploadDirectory = realpath(__DIR__ . '/../assets/uploads/profiles');
+          if (
+            is_string($photoPath)
+            && strncmp($photoPath, $photoUrlPrefix, strlen($photoUrlPrefix)) === 0
+            && $uploadDirectory !== false
+          ) {
+            $photoFile = realpath($uploadDirectory . DIRECTORY_SEPARATOR . basename($photoPath));
+            $uploadDirectoryPrefix = rtrim($uploadDirectory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+            if (
+              $photoFile !== false
+              && strncmp($photoFile, $uploadDirectoryPrefix, strlen($uploadDirectoryPrefix)) === 0
+              && is_file($photoFile)
+              && !unlink($photoFile)
+            ) {
+              error_log('Não foi possível remover a foto de perfil de um aluno excluído.');
+              $studentActionMessage = 'A conta foi removida, mas não foi possível apagar a foto de perfil.';
+              $studentActionType = 'warning';
+            }
+          }
+
+          $_SESSION['teacher_student_action_message'] = $studentActionMessage;
+          $_SESSION['teacher_student_action_type'] = $studentActionType;
+          header('Location: ' . BASE_URL . '/teacher/dashboard.php');
+          exit;
+        }
+
+        $studentActionMessage = 'Não foi possível remover a conta do aluno.';
+      }
+    }
+  }
+}
+
 $classActionMessage = '';
 $classActionType = 'danger';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['create_class', 'move_student'], true)) {
@@ -98,8 +220,8 @@ if ($selectedClassId === false) {
 $user = getCurrentUser();
 
 // Alertas de desempenho nao lidos
-$stmt = $pdo->prepare('SELECT * FROM notifications WHERE type="alert" AND is_read=0 ORDER BY created_at DESC LIMIT 20');
-$stmt->execute();
+$stmt = $pdo->prepare('SELECT * FROM notifications WHERE type="alert" AND user_id=? AND is_read=0 ORDER BY created_at DESC LIMIT 20');
+$stmt->execute([$user['id']]);
 $alerts = $stmt->fetchAll();
 
 // Marcar como lido apenas para o professor atual
@@ -146,6 +268,19 @@ $monthlyAudit = runMonthlyRecoveryAudit($pdo, $currentMonth, false);
 require_once __DIR__ . '/../includes/header.php';
 ?>
 <div class="teacher-layout">
+  <?php if ($studentActionMessage): ?>
+    <div class="alert alert-<?= htmlspecialchars($studentActionType) ?>" role="<?= $studentActionType === 'success' ? 'status' : 'alert' ?>">
+      <i class="fa-solid <?= $studentActionType === 'success' ? 'fa-circle-check' : 'fa-triangle-exclamation' ?>"></i>
+      <span><?= htmlspecialchars($studentActionMessage) ?></span>
+    </div>
+  <?php endif; ?>
+  <?php if ($classActionMessage): ?>
+    <div class="alert alert-<?= htmlspecialchars($classActionType) ?>" role="<?= $classActionType === 'success' ? 'status' : 'alert' ?>">
+      <i class="fa-solid <?= $classActionType === 'success' ? 'fa-circle-check' : 'fa-triangle-exclamation' ?>"></i>
+      <span><?= htmlspecialchars($classActionMessage) ?></span>
+    </div>
+  <?php endif; ?>
+
   <div class="teacher-header">
     <div>
       <h1 class="teacher-title">
@@ -159,13 +294,6 @@ require_once __DIR__ . '/../includes/header.php';
       </a>
     </div>
   </div>
-
-  <?php if ($classActionMessage): ?>
-    <div class="alert alert-<?= htmlspecialchars($classActionType) ?>" role="<?= $classActionType === 'success' ? 'status' : 'alert' ?>">
-      <i class="fa-solid <?= $classActionType === 'success' ? 'fa-circle-check' : 'fa-triangle-exclamation' ?>"></i>
-      <span><?= htmlspecialchars($classActionMessage) ?></span>
-    </div>
-  <?php endif; ?>
 
   <section class="card teacher-classes-panel" aria-labelledby="classes-heading">
     <div class="card-header">
@@ -372,7 +500,7 @@ require_once __DIR__ . '/../includes/header.php';
             <th scope="col">Aproveitamento</th>
             <th scope="col">Pontuação</th>
             <th scope="col">Última Partida</th>
-            <th scope="col" style="text-align: center;">Recuperação</th>
+            <th scope="col" style="text-align: center;">Ações</th>
           </tr>
         </thead>
         <tbody>
@@ -434,11 +562,19 @@ require_once __DIR__ . '/../includes/header.php';
             <td style="text-align: center;">
               <button type="button" 
                       class="btn-recovery-trigger"
-                      onclick="selectStudentForRecovery(<?= (int)$s['id'] ?>, <?= htmlspecialchars(json_encode($s['name'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT), ENT_QUOTES, 'UTF-8') ?>, <?= $acc ?>)"
+                      onclick="selectStudentForRecovery(<?= (int)$s['id'] ?>, '<?= htmlspecialchars(addslashes($s['name'])) ?>', <?= $acc ?>)"
                       title="Aplicar recuperação individual para <?= htmlspecialchars($s['name']) ?>"
                       aria-label="Aplicar recuperação individual para <?= htmlspecialchars($s['name']) ?>">
                 <i class="fa-solid fa-bullseye"></i> Aplicar
               </button>
+              <form method="POST" class="student-delete-form" onsubmit="return confirm(<?= htmlspecialchars(json_encode('Excluir permanentemente a conta de ' . $s['name'] . '? Esta ação também remove os dados associados.', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT), ENT_QUOTES, 'UTF-8') ?>);">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                <input type="hidden" name="action" value="delete_student">
+                <input type="hidden" name="student_id" value="<?= (int)$s['id'] ?>">
+                <button type="submit" class="btn-student-delete">
+                  <i class="fa-solid fa-user-xmark"></i> Remover
+                </button>
+              </form>
             </td>
           </tr>
           <?php endforeach; ?>
@@ -461,7 +597,7 @@ require_once __DIR__ . '/../includes/header.php';
         <h2 class="ai-generator-title">
           <i class="fa-solid fa-brain text-primary"></i> Gerador de Questões de Reforço e Recuperação
         </h2>
-        <p class="ai-generator-desc">O motor pedagógico analisa o histórico de acertos e erros para formular questões personalizadas. Escolha um aluno ou selecione uma turma inteira; cada aluno receberá uma recuperação individual.</p>
+        <p class="ai-generator-desc">O motor pedagógico analisa o histórico de acertos e erros para formular questões personalizadas. Escolha um aluno ou uma turma; cada aluno receberá uma recuperação individual.</p>
       </div>
       <span class="ai-mode-pill" id="aiModeIndicator">
         <i class="fa-solid fa-user-graduate"></i> Escolha o destinatário
@@ -652,7 +788,7 @@ async function generateAI(){
         'Content-Type': 'application/json',
         'X-CSRF-Token': token
       },
-      body: JSON.stringify({
+      body: JSON.stringify({ 
         topic: topic, 
         game_id: gameId, 
         student_id: studentId,
@@ -666,7 +802,6 @@ async function generateAI(){
         ? 'Recuperação criada para ' + (data.student_name || 'o aluno') + ' com ' + data.generated + ' questões.'
         : 'Recuperações criadas para ' + data.notified_students + ' aluno(s), cada uma com ' + data.questions_per_student + ' questões.';
       showToast(msg, 'success', 6500);
-
       setTimeout(function(){ window.location.reload(); }, 2500);
     } else {
       showToast('Aviso: ' + (data.error || 'Falha ao processar recuperação'), 'error');

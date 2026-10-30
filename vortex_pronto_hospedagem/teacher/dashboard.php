@@ -220,8 +220,8 @@ if ($selectedClassId === false) {
 $user = getCurrentUser();
 
 // Alertas de desempenho nao lidos
-$stmt = $pdo->prepare('SELECT * FROM notifications WHERE type="alert" AND is_read=0 ORDER BY created_at DESC LIMIT 20');
-$stmt->execute();
+$stmt = $pdo->prepare('SELECT * FROM notifications WHERE type="alert" AND user_id=? AND is_read=0 ORDER BY created_at DESC LIMIT 20');
+$stmt->execute([$user['id']]);
 $alerts = $stmt->fetchAll();
 
 // Marcar como lido apenas para o professor atual

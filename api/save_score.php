@@ -97,6 +97,7 @@ if ($recoveryId !== null) {
         exit;
     }
 
+    // Abre a transação aqui para incluir todos os INSERTs dentro dela
     $pdo->beginTransaction();
     $recoveryStmt = $pdo->prepare("SELECT id, game_id FROM recoveries WHERE id = ? AND student_id = ? AND status = 'pending' FOR UPDATE");
     $recoveryStmt->execute([$recoveryId, $userId]);
@@ -185,6 +186,7 @@ $score = min($maxScoreCap, $score + $perfBonusScore);
 $rawXP = (int)round($score * 0.15);
 $xpGained = $baseCompletionXP + $perfBonusXP + $rawXP;
 
+// INSERTs de game_session, XP e learning_trail ficam dentro da transação de recovery (se houver)
 $pdo->prepare(
     'INSERT INTO game_sessions (user_id, game_id, score, correct_answers, wrong_answers, time_spent, difficulty)
      VALUES (?, ?, ?, ?, ?, ?, ?)'

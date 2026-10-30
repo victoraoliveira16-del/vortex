@@ -31,7 +31,7 @@ try {
                 $_SESSION['remember_me']    = true;
                 $_SESSION['just_logged_in'] = true;
             } else {
-                setcookie('vortex_remember', '', time() - 3600, '/');
+                deleteRememberCookie();
             }
         }
     }
@@ -283,15 +283,26 @@ function getCurrentUser(): ?array {
     return $s->fetch() ?: null;
 }
 
-function loginUser(string $email, string $password, bool $rememberMe = false): array {
+function loginUser(string $email, string $password, bool $rememberMe = false, string $expectedRole = ''): array {
     global $pdo;
     $s = $pdo->prepare('SELECT * FROM users WHERE email = ?');
     $s->execute([trim($email)]);
     $user = $s->fetch();
+
+    // Mensagem genérica — não revela se e-mail existe, senha está correta ou role errado
+    $genericError = ['success' => false, 'message' => 'E-mail, senha ou perfil incorretos.'];
+
     if (!$user || !password_verify($password, $user['password_hash'])) {
         recordFailedLogin();
-        return ['success' => false, 'message' => 'E-mail ou senha incorretos.'];
+        return $genericError;
     }
+
+    // Valida o papel ANTES de criar sessão/cookies
+    if ($expectedRole !== '' && $user['role'] !== $expectedRole) {
+        recordFailedLogin();
+        return $genericError;
+    }
+
     // Login bem-sucedido: regenera ID de sessão (anti-fixation)
     session_regenerate_id(true);
     clearLoginRateLimit();
@@ -326,9 +337,7 @@ function loginUser(string $email, string $password, bool $rememberMe = false): a
             'samesite' => 'Lax',
         ]);
     } else {
-        if (isset($_COOKIE['vortex_remember'])) {
-            setcookie('vortex_remember', '', time() - 3600, '/');
-        }
+        deleteRememberCookie();
     }
 
     return ['success' => true, 'role' => $user['role']];
@@ -401,16 +410,40 @@ function registerUser(string $name, string $email, string $password, string $rol
     return ['success' => true, 'role' => $role];
 }
 
+function deleteRememberCookie(): void {
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+               || (($_SERVER['SERVER_PORT'] ?? 80) == 443)
+               || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+    setcookie('vortex_remember', '', [
+        'expires'  => time() - 3600,
+        'path'     => '/',
+        'secure'   => $isHttps,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+    if (isset($_COOKIE['vortex_remember'])) {
+        unset($_COOKIE['vortex_remember']);
+    }
+}
+
 function logout(?string $target = null): void {
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+               || (($_SERVER['SERVER_PORT'] ?? 80) == 443)
+               || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
     if (session_status() === PHP_SESSION_ACTIVE) {
         $_SESSION = [];
         session_destroy();
     }
-    if (isset($_COOKIE['vortex_remember'])) {
-        setcookie('vortex_remember', '', time() - 3600, '/');
-    }
+    deleteRememberCookie();
     if (isset($_COOKIE[session_name()])) {
-        setcookie(session_name(), '', time() - 3600, '/');
+        setcookie(session_name(), '', [
+            'expires'  => time() - 3600,
+            'path'     => '/',
+            'secure'   => $isHttps,
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+        unset($_COOKIE[session_name()]);
     }
     $to = $target ?: ((defined('BASE_URL') ? BASE_URL : '') . '/index.php');
     header('Location: ' . $to);

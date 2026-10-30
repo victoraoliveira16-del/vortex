@@ -216,29 +216,28 @@ require_once __DIR__ . '/includes/header.php';
       </div>
     </div>
 
-    <!-- RECUPERAÇÕES DO ALUNO -->
-<?php if ($user['role'] === 'student'): ?>
-<div class="reinforce-banner-card mb-4">
-  <div class="reinforce-banner-header">
-    <div class="reinforce-banner-title">
-      <div class="reinforce-pulse-icon"><i class="fa-solid fa-clipboard-check"></i></div>
-      <div>
-        <h2 class="reinforce-heading">Recuperações</h2>
-        <p class="reinforce-subheading">
-          <?= $pendingRecoveriesCount > 0
-            ? 'Você tem ' . $pendingRecoveriesCount . ' recuperação(ões) pendente(s) enviada(s) pelo professor.'
-            : 'Você não tem nenhuma recuperação para fazer no momento.' ?>
-        </p>
+    <?php if ($user['role'] === 'student'): ?>
+      <div class="reinforce-banner-card mb-4">
+        <div class="reinforce-banner-header">
+          <div class="reinforce-banner-title">
+            <div class="reinforce-pulse-icon"><i class="fa-solid fa-clipboard-check"></i></div>
+            <div>
+              <h2 class="reinforce-heading">Recuperações</h2>
+              <p class="reinforce-subheading">
+                <?= $pendingRecoveriesCount > 0
+                  ? 'Você tem ' . $pendingRecoveriesCount . ' recuperação(ões) pendente(s) enviada(s) pelo professor.'
+                  : 'Você não tem nenhuma recuperação para fazer no momento.' ?>
+              </p>
+            </div>
+          </div>
+          <div class="reinforce-banner-action">
+            <a href="<?= BASE_URL ?>/recovery.php" class="btn btn-primary btn-glow">
+              <i class="fa-solid fa-arrow-right"></i> Ver recuperações
+            </a>
+          </div>
+        </div>
       </div>
-    </div>
-    <div class="reinforce-banner-action">
-      <a href="<?= BASE_URL ?>/recovery.php" class="btn btn-primary btn-glow">
-        <i class="fa-solid fa-arrow-right"></i> Ver recuperações
-      </a>
-    </div>
-  </div>
-</div>
-<?php endif; ?>
+    <?php endif; ?>
 
 
     <!-- CONQUISTAS -->

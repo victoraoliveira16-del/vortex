@@ -751,7 +751,7 @@ function finishGame(isGameOver){
   }
 
   var finalDiff = finalLvl >= 4 ? 'hard' : (finalLvl >= 2 ? 'medium' : 'easy');
-  saveScore(gameId, elapsed, finalDiff, score, correct, wrong);
+  saveScore(gameId, elapsed, finalDiff);
 }
 
 function restartGame(){

@@ -1,6 +1,7 @@
 <?php
 $pageTitle = 'Construtor de Cidades';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/question_generator.php';
 requireLogin();
 
 $stmt = $pdo->prepare('SELECT * FROM games WHERE slug=?');
@@ -10,34 +11,8 @@ if (!$game) {
     $game = ['id' => 2, 'slug' => 'geometry', 'name' => 'Construtor de Cidades', 'topic' => 'Geometria Plana'];
 }
 
-$questions = [];
-if (!empty($game['id'])) {
-    $stmt = $pdo->prepare('
-        SELECT *
-        FROM questions
-        WHERE game_id = ?
-          AND COALESCE(is_ai_generated, 0) = 0
-          AND target_user_id IS NULL
-          AND recovery_id IS NULL
-        ORDER BY RAND()
-        LIMIT 8
-    ');
-    $stmt->execute([$game['id']]);
-    $questions = $stmt->fetchAll();
-}
-
-if (empty($questions)) {
-    $questions = [
-        ['id' => 9,  'question_text' => 'Um terreno retangular tem 5m de largura e 8m de comprimento. Qual e a sua area total?', 'option_a' => '26 m2', 'option_b' => '40 m2', 'option_c' => '13 m2', 'option_d' => '20 m2', 'difficulty' => 'easy'],
-        ['id' => 10, 'question_text' => 'Uma praca quadrada possui lado de 6m. Qual e o seu perimetro total?', 'option_a' => '12 metros', 'option_b' => '36 metros', 'option_c' => '24 metros', 'option_d' => '18 metros', 'difficulty' => 'easy'],
-        ['id' => 11, 'question_text' => 'Para cercar um jardim retangular de 4m por 3m, quantos metros de cerca sao necessarios?', 'option_a' => '7 metros', 'option_b' => '12 metros', 'option_c' => '14 metros', 'option_d' => '24 metros', 'difficulty' => 'easy'],
-        ['id' => 12, 'question_text' => 'Um apartamento quadrado possui area de 25m2. Qual e a medida de cada lado?', 'option_a' => '6 metros', 'option_b' => '5 metros', 'option_c' => '4 metros', 'option_d' => '7 metros', 'difficulty' => 'easy'],
-        ['id' => 13, 'question_text' => 'Uma sala retangular mede 10m por 4m. Quantas placas de piso de 1m2 sao necessarias para cobrir o chao?', 'option_a' => '28 placas', 'option_b' => '14 placas', 'option_c' => '40 placas', 'option_d' => '20 placas', 'difficulty' => 'medium'],
-        ['id' => 14, 'question_text' => 'Um parque triangular possui base de 8m e altura de 5m. Qual e a sua area?', 'option_a' => '40 m2', 'option_b' => '13 m2', 'option_c' => '20 m2', 'option_d' => '26 m2', 'difficulty' => 'medium'],
-        ['id' => 15, 'question_text' => 'Uma praca circular tem raio de 3m. Qual e a area aproximada? (Considere pi = 3)', 'option_a' => '9 m2', 'option_b' => '18 m2', 'option_c' => '27 m2', 'option_d' => '6 m2', 'difficulty' => 'medium'],
-        ['id' => 16, 'question_text' => 'Um terreno em L e composto por um retangulo 10x6 do qual retirou-se um recorte 4x3. Qual e a area util restante?', 'option_a' => '48 m2', 'option_b' => '60 m2', 'option_c' => '72 m2', 'option_d' => '52 m2', 'difficulty' => 'hard'],
-    ];
-}
+// Gera 8 questões aleatórias e dinâmicas com progressão adaptativa (Fácil -> Médio -> Difícil)
+$questions = generateDynamicGameQuestions('geometry', 8);
 
 require_once __DIR__ . '/../includes/header.php';
 ?>
@@ -170,7 +145,7 @@ require_once __DIR__ . '/../includes/header.php';
 // Gabarito removido: apenas campos de exibição são enviados ao cliente
 var questions = <?= json_encode(array_values(array_map(function($q){
     return [
-        'id'            => (int)$q['id'],
+        'id'            => $q['id'],
         'question_text' => $q['question_text'],
         'option_a'      => $q['option_a'],
         'option_b'      => $q['option_b'],
@@ -370,16 +345,7 @@ function showResult(){
 }
 
 function restartGame(){
-  current = 0; score = 0; correct = 0; wrong = 0; answered = false; buildingCount = 0; startTime = Date.now();
-  document.getElementById('score').textContent = '0';
-  document.getElementById('questionArea').classList.remove('d-none');
-  document.getElementById('resultArea').classList.add('d-none');
-  ['s1','s2','s3'].forEach(function(id){
-    var el = document.getElementById(id);
-    if(el) el.classList.remove('lit');
-  });
-  questions.sort(function(){ return Math.random() - 0.5; });
-  loadQuestion();
+  window.location.reload();
 }
 
 document.addEventListener('DOMContentLoaded', function(){ loadQuestion(); });

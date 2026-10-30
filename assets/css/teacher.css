@@ -244,6 +244,32 @@
   box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
 }
 
+.student-delete-form {
+  display: inline-block;
+  margin-left: 0.35rem;
+}
+
+.btn-student-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.65rem;
+  border: 1.5px solid rgba(220, 38, 38, 0.35);
+  border-radius: var(--radius-sm);
+  background: rgba(220, 38, 38, 0.08);
+  color: var(--danger);
+  font-size: 0.775rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: var(--transition);
+}
+
+.btn-student-delete:hover {
+  border-color: var(--danger);
+  background: var(--danger);
+  color: #FFFFFF;
+}
+
 /* AI Question Generator Card */
 .ai-generator-card {
   background: linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, rgba(124, 58, 237, 0.08) 100%);

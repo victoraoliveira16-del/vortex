@@ -8,7 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isLoggedIn()) {
     exit;
 }
 
-$data = !empty($data) ? $data : (json_decode(file_get_contents('php://input'), true) ?? []);
+$data = json_decode(file_get_contents('php://input'), true) ?? [];
 $csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($data['csrf_token'] ?? '');
 if (!$csrfToken || !verifyCsrfToken($csrfToken)) {
     http_response_code(403);
@@ -324,8 +324,9 @@ if ($level === 1) {
     }
 }
 
-$stmt = $pdo->prepare('INSERT INTO questions (game_id, topic, question_text, option_a, option_b, option_c, option_d, correct_answer, explanation, difficulty, is_ai_generated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)');
-$stmt->execute([$gameId, 'Operacoes Basicas', $questionText, '', '', '', '', (string)$answer, $explanation, $difficulty]);
+$userId = (int)$_SESSION['user_id'];
+$stmt = $pdo->prepare('INSERT INTO questions (game_id, topic, question_text, option_a, option_b, option_c, option_d, correct_answer, explanation, difficulty, is_ai_generated, target_user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)');
+$stmt->execute([$gameId, 'Operacoes Basicas', $questionText, '', '', '', '', (string)$answer, $explanation, $difficulty, $userId]);
 
 $question = [
     'id' => (int)$pdo->lastInsertId(),
