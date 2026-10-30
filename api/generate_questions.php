@@ -170,7 +170,7 @@ if (!empty($GEMINI_KEY) && $GEMINI_KEY !== 'YOUR_GEMINI_API_KEY_HERE') {
     if (function_exists('curl_init')) {
         $prompt = $promptContext . ' Responda somente com JSON puro em array, sem markdown, sem explicacao extra: [{"pergunta":"","opcao_a":"","opcao_b":"","opcao_c":"","opcao_d":"","resposta_correta":"A","explicacao":""}]';
 
-        $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=' . urlencode($GEMINI_KEY);
+        $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . urlencode($GEMINI_KEY);
         $payload = [
             'contents' => [[
                 'parts' => [[

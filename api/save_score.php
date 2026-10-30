@@ -194,14 +194,15 @@ addXP($userId, $xpGained);
 $unlockedAchievements = checkAndUnlockAchievements($userId);
 
 if ($game) {
-    $total = $correct + $wrong;
-    $pct   = $total > 0 ? (int)round($correct / $total * 100) : 0;
+    // Usar variável separada para não sobrescrever $total/$accuracy usados acima nas estrelas
+    $gameTotal = $correct + $wrong;
+    $pct       = $gameTotal > 0 ? (int)round($correct / $gameTotal * 100) : 0;
     $pdo->prepare(
         'INSERT INTO learning_trail (user_id, topic, progress_pct) VALUES (?, ?, ?)
          ON DUPLICATE KEY UPDATE progress_pct = GREATEST(progress_pct, VALUES(progress_pct))'
     )->execute([$userId, $game['topic'], $pct]);
 
-    if ($total > 0 && ($wrong / $total) > 0.6) {
+    if ($gameTotal > 0 && ($wrong / $gameTotal) > 0.6) {
         $uStmt = $pdo->prepare('SELECT name FROM users WHERE id = ?');
         $uStmt->execute([$userId]);
         $studentName = $uStmt->fetchColumn() ?: ('Aluno #' . $userId);

@@ -56,7 +56,7 @@ require_once __DIR__ . '/includes/header.php';
       </div>
       <div class="profile-info">
         <div class="profile-name"><?= htmlspecialchars($user['name']) ?></div>
-        <div class="profile-role"><?= $user['role'] === 'teacher' ? 'Professora' : 'Aluno' ?></div>
+        <div class="profile-role"><?= $user['role'] === 'teacher' ? 'Professor(a)' : 'Aluno' ?></div>
         <div class="level-badge"><i class="fa-solid fa-star"></i> Nivel <?= $user['level'] ?></div>
         <div class="xp-label">
           <span class="xp-current"><?= $user['xp'] ?> XP</span>

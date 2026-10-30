@@ -1,12 +1,16 @@
 # MathPlay Solutions - Apache Configuration
-Options -Indexes
 DirectoryIndex index.php
 
-# Proteger arquivos sensíveis
+# Proteger arquivos sensiveis
 <FilesMatch "^\.(env|git)">
-    Order allow,deny
-    Deny from all
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
 </FilesMatch>
 
-# Charset padrão
+# Charset padrao
 AddDefaultCharset UTF-8

@@ -35,7 +35,7 @@ foreach ($attempts as [$user, $pass]) {
 }
 
 if ($pdo === null) {
-    http_response_code(500);
+    // Nao emitir 500 para navegadores nao ocultarem a mensagem de diagnostico
     $message = $lastError instanceof PDOException ? $lastError->getMessage() : 'Verifique as credenciais do MySQL e se o banco existe.';
     $isConnRefused = strpos($message, '2002') !== false || strpos($message, 'refused') !== false;
     ?>

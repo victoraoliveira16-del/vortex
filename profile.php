@@ -75,7 +75,7 @@ require_once __DIR__ . '/includes/header.php';
       </div>
       <h1 class="profile-header-title"><?= htmlspecialchars($user['name']) ?></h1>
       <p class="profile-header-subtitle">
-        <span><i class="fa-solid <?= $user['role'] === 'teacher' ? 'fa-chalkboard-user' : 'fa-graduation-cap' ?>"></i> <?= $user['role'] === 'teacher' ? 'Professora' : 'Aluno' ?></span>
+        <span><i class="fa-solid <?= $user['role'] === 'teacher' ? 'fa-chalkboard-user' : 'fa-graduation-cap' ?>"></i> <?= $user['role'] === 'teacher' ? 'Professor(a)' : 'Aluno' ?></span>
         <span>&middot;</span>
         <span>Membro desde <?= date('M/Y', strtotime($user['created_at'])) ?></span>
       </p>

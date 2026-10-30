@@ -102,8 +102,8 @@ $stmt = $pdo->prepare('SELECT * FROM notifications WHERE type="alert" AND is_rea
 $stmt->execute();
 $alerts = $stmt->fetchAll();
 
-// Marcar como lido
-$pdo->prepare('UPDATE notifications SET is_read=1 WHERE type="alert"')->execute();
+// Marcar como lido apenas para o professor atual
+$pdo->prepare('UPDATE notifications SET is_read=1 WHERE type="alert" AND user_id=?')->execute([$user['id']]);
 
 // Todos os alunos com estatisticas
 $stmt = $pdo->prepare('

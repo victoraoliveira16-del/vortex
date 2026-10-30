@@ -1,4 +1,9 @@
 <?php
+// Exibir erros para diagnóstico de deploy
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+error_reporting(E_ALL);
+
 // Configuracao de ambiente e banco de dados
 $envPath = __DIR__ . '/.env';
 $env = file_exists($envPath) ? (parse_ini_file($envPath) ?: []) : [];
@@ -18,11 +23,11 @@ if ($isLocalhost) {
 } else {
     // Ambiente de Hospedagem (InfinityFree / ByetHost)
     // Se existir .env na hospedagem, tem prioridade; senao usa as constantes abaixo:
-    define('DB_HOST', $env['DB_HOST'] ?? 'sql305.infinityfree.com'); // Pegue o hostname exato na aba "MySQL Databases" do painel
+    define('DB_HOST', $env['DB_HOST'] ?? 'sql109.infinityfree.com');
     define('DB_PORT', $env['DB_PORT'] ?? '3306');
     define('DB_USER', $env['DB_USER'] ?? 'if0_43234203');
-    define('DB_PASS', $env['DB_PASS'] ?? ''); // Preencha com sua senha do painel InfinityFree
-    define('DB_NAME', $env['DB_NAME'] ?? 'if0_43234203_mathplay');
+    define('DB_PASS', $env['DB_PASS'] ?? '235762mV');
+    define('DB_NAME', $env['DB_NAME'] ?? 'if0_43234203_vortex');
 }
 
 // URL Base automatica: funciona tanto no Laragon (/vortex) quanto na raiz da hospedagem ('')

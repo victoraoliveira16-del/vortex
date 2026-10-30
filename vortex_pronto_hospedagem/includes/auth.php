@@ -2,10 +2,13 @@
 if (session_status() === PHP_SESSION_NONE) {
     // Se o usuário marcou "manter conectado", o cookie dura 30 dias; senão, dura até fechar a janela
     $cookieLifetime = !empty($_COOKIE['vortex_remember']) ? (30 * 86400) : 0;
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+               || (($_SERVER['SERVER_PORT'] ?? 80) == 443)
+               || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
     session_set_cookie_params([
         'lifetime' => $cookieLifetime,
         'path'     => '/',
-        'secure'   => false, // mudar para true em HTTPS/produção
+        'secure'   => $isHttps,
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
@@ -14,141 +17,152 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once __DIR__ . '/db.php';
 
 // Auto-login via cookie seguro de "Manter conectado" se a sessão tiver expirado
-if (!isset($_SESSION['user_id']) && !empty($_COOKIE['vortex_remember'])) {
-    $rememberData = json_decode(base64_decode($_COOKIE['vortex_remember']), true);
-    if (!empty($rememberData['uid']) && !empty($rememberData['hash'])) {
-        $s = $pdo->prepare('SELECT * FROM users WHERE id = ?');
-        $s->execute([(int)$rememberData['uid']]);
-        $u = $s->fetch();
-        if ($u && hash_equals($rememberData['hash'], hash('sha256', $u['password_hash'] . 'vortex_salt_2026'))) {
-            $_SESSION['user_id']        = $u['id'];
-            $_SESSION['user_name']      = $u['name'];
-            $_SESSION['user_role']      = $u['role'];
-            $_SESSION['remember_me']    = true;
-            $_SESSION['just_logged_in'] = true;
-        } else {
-            setcookie('vortex_remember', '', time() - 3600, '/');
+try {
+    if (!isset($_SESSION['user_id']) && !empty($_COOKIE['vortex_remember']) && $pdo) {
+        $rememberData = json_decode(base64_decode($_COOKIE['vortex_remember']), true);
+        if (!empty($rememberData['uid']) && !empty($rememberData['hash'])) {
+            $s = $pdo->prepare('SELECT * FROM users WHERE id = ?');
+            $s->execute([(int)$rememberData['uid']]);
+            $u = $s->fetch();
+            if ($u && hash_equals($rememberData['hash'], hash('sha256', $u['password_hash'] . 'vortex_salt_2026'))) {
+                $_SESSION['user_id']        = $u['id'];
+                $_SESSION['user_name']      = $u['name'];
+                $_SESSION['user_role']      = $u['role'];
+                $_SESSION['remember_me']    = true;
+                $_SESSION['just_logged_in'] = true;
+            } else {
+                setcookie('vortex_remember', '', time() - 3600, '/');
+            }
         }
     }
-}
+} catch (Throwable $e) {}
 
 function ensureProfilePhotoColumn(): void {
     global $pdo;
     static $checked = false;
-    if ($checked) return;
+    if ($checked || !$pdo) return;
     $checked = true;
 
-    $column = $pdo->query("SHOW COLUMNS FROM users LIKE 'profile_photo'")->fetch();
-    if (!$column) {
-        $pdo->exec('ALTER TABLE users ADD COLUMN profile_photo VARCHAR(255) NULL');
-    }
+    try {
+        $column = $pdo->query("SHOW COLUMNS FROM users LIKE 'profile_photo'")->fetch();
+        if (!$column) {
+            $pdo->exec('ALTER TABLE users ADD COLUMN profile_photo VARCHAR(255) NULL');
+        }
+    } catch (Throwable $e) {}
 }
 
 function ensureAvatarColorColumn(): void {
     global $pdo;
     static $checked = false;
-    if ($checked) return;
+    if ($checked || !$pdo) return;
     $checked = true;
 
-    $column = $pdo->query("SHOW COLUMNS FROM users LIKE 'avatar_color'")->fetch();
-    if (!$column) {
-        $pdo->exec("ALTER TABLE users ADD COLUMN avatar_color VARCHAR(7) NOT NULL DEFAULT '#2563EB'");
-    }
+    try {
+        $column = $pdo->query("SHOW COLUMNS FROM users LIKE 'avatar_color'")->fetch();
+        if (!$column) {
+            $pdo->exec("ALTER TABLE users ADD COLUMN avatar_color VARCHAR(7) NOT NULL DEFAULT '#2563EB'");
+        }
+    } catch (Throwable $e) {}
 }
 
 function ensureTargetUserIdColumn(): void {
     global $pdo;
     static $checked = false;
-    if ($checked) return;
+    if ($checked || !$pdo) return;
     $checked = true;
 
-    $column = $pdo->query("SHOW COLUMNS FROM questions LIKE 'target_user_id'")->fetch();
-    if (!$column) {
-        $pdo->exec('ALTER TABLE questions ADD COLUMN target_user_id INT NULL DEFAULT NULL AFTER is_ai_generated');
-    }
+    try {
+        $column = $pdo->query("SHOW COLUMNS FROM questions LIKE 'target_user_id'")->fetch();
+        if (!$column) {
+            $pdo->exec('ALTER TABLE questions ADD COLUMN target_user_id INT NULL DEFAULT NULL AFTER is_ai_generated');
+        }
 
-    $foreignKey = $pdo->query("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'questions' AND COLUMN_NAME = 'target_user_id' AND REFERENCED_TABLE_NAME = 'users'")->fetch();
-    if (!$foreignKey) {
-        $pdo->exec('ALTER TABLE questions ADD CONSTRAINT fk_questions_target_user FOREIGN KEY (target_user_id) REFERENCES users(id) ON DELETE SET NULL');
-    }
+        $foreignKey = $pdo->query("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'questions' AND COLUMN_NAME = 'target_user_id' AND REFERENCED_TABLE_NAME = 'users'")->fetch();
+        if (!$foreignKey) {
+            $pdo->exec('ALTER TABLE questions ADD CONSTRAINT fk_questions_target_user FOREIGN KEY (target_user_id) REFERENCES users(id) ON DELETE SET NULL');
+        }
+    } catch (Throwable $e) {}
 }
 
 function ensureClassRecoverySchema(): void {
     global $pdo;
     static $checked = false;
-    if ($checked) return;
+    if ($checked || !$pdo) return;
     $checked = true;
 
-    $pdo->exec("CREATE TABLE IF NOT EXISTS classes (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(20) NOT NULL UNIQUE,
-        max_students INT NOT NULL DEFAULT 30,
-        created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-    $pdo->exec("INSERT IGNORE INTO classes (name) VALUES ('7 A'), ('7 B')");
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS classes (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(20) NOT NULL UNIQUE,
+            max_students INT NOT NULL DEFAULT 30,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        $pdo->exec("INSERT IGNORE INTO classes (name) VALUES ('7 A'), ('7 B')");
 
-    $classColumn = $pdo->query("SHOW COLUMNS FROM users LIKE 'class_id'")->fetch();
-    if (!$classColumn) {
-        $pdo->exec('ALTER TABLE users ADD COLUMN class_id INT NULL');
-    }
-    $classForeignKey = $pdo->query("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'class_id' AND REFERENCED_TABLE_NAME = 'classes'")->fetch();
-    if (!$classForeignKey) {
-        $pdo->exec('ALTER TABLE users ADD CONSTRAINT fk_users_class FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE SET NULL');
-    }
+        $classColumn = $pdo->query("SHOW COLUMNS FROM users LIKE 'class_id'")->fetch();
+        if (!$classColumn) {
+            $pdo->exec('ALTER TABLE users ADD COLUMN class_id INT NULL');
+        }
+        $classForeignKey = $pdo->query("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'class_id' AND REFERENCED_TABLE_NAME = 'classes'")->fetch();
+        if (!$classForeignKey) {
+            $pdo->exec('ALTER TABLE users ADD CONSTRAINT fk_users_class FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE SET NULL');
+        }
 
-    $pdo->exec("CREATE TABLE IF NOT EXISTS recoveries (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        student_id INT NOT NULL,
-        teacher_id INT NULL,
-        topic VARCHAR(100) NOT NULL,
-        game_id INT NULL,
-        status ENUM('pending','completed') NOT NULL DEFAULT 'pending',
-        score INT NULL,
-        created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-        completed_at TIMESTAMP NULL DEFAULT NULL,
-        CONSTRAINT fk_recoveries_student FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
-        CONSTRAINT fk_recoveries_teacher FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE SET NULL
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        $pdo->exec("CREATE TABLE IF NOT EXISTS recoveries (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            student_id INT NOT NULL,
+            teacher_id INT NULL,
+            topic VARCHAR(100) NOT NULL,
+            game_id INT NULL,
+            status ENUM('pending','completed') NOT NULL DEFAULT 'pending',
+            score INT NULL,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            completed_at TIMESTAMP NULL DEFAULT NULL,
+            CONSTRAINT fk_recoveries_student FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
+            CONSTRAINT fk_recoveries_teacher FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    $targetColumn = $pdo->query("SHOW COLUMNS FROM questions LIKE 'target_user_id'")->fetch();
-    if (!$targetColumn) {
-        $pdo->exec('ALTER TABLE questions ADD COLUMN target_user_id INT NULL DEFAULT NULL');
-    }
-    $recoveryColumn = $pdo->query("SHOW COLUMNS FROM questions LIKE 'recovery_id'")->fetch();
-    if (!$recoveryColumn) {
-        $pdo->exec('ALTER TABLE questions ADD COLUMN recovery_id INT NULL');
-    }
-    $recoveryForeignKey = $pdo->query("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'questions' AND COLUMN_NAME = 'recovery_id' AND REFERENCED_TABLE_NAME = 'recoveries'")->fetch();
-    if (!$recoveryForeignKey) {
-        $pdo->exec('ALTER TABLE questions ADD CONSTRAINT fk_questions_recovery FOREIGN KEY (recovery_id) REFERENCES recoveries(id) ON DELETE CASCADE');
-    }
+        $targetColumn = $pdo->query("SHOW COLUMNS FROM questions LIKE 'target_user_id'")->fetch();
+        if (!$targetColumn) {
+            $pdo->exec('ALTER TABLE questions ADD COLUMN target_user_id INT NULL DEFAULT NULL');
+        }
+        $recoveryColumn = $pdo->query("SHOW COLUMNS FROM questions LIKE 'recovery_id'")->fetch();
+        if (!$recoveryColumn) {
+            $pdo->exec('ALTER TABLE questions ADD COLUMN recovery_id INT NULL');
+        }
+        $recoveryForeignKey = $pdo->query("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'questions' AND COLUMN_NAME = 'recovery_id' AND REFERENCED_TABLE_NAME = 'recoveries'")->fetch();
+        if (!$recoveryForeignKey) {
+            $pdo->exec('ALTER TABLE questions ADD CONSTRAINT fk_questions_recovery FOREIGN KEY (recovery_id) REFERENCES recoveries(id) ON DELETE CASCADE');
+        }
 
-    $pdo->exec("CREATE TABLE IF NOT EXISTS monthly_recovery_audits (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        audit_month VARCHAR(7) NOT NULL UNIQUE,
-        executed_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-        students_audited INT NOT NULL DEFAULT 0,
-        students_in_recovery INT NOT NULL DEFAULT 0,
-        details_json TEXT NULL
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        $pdo->exec("CREATE TABLE IF NOT EXISTS monthly_recovery_audits (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            audit_month VARCHAR(7) NOT NULL UNIQUE,
+            executed_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            students_audited INT NOT NULL DEFAULT 0,
+            students_in_recovery INT NOT NULL DEFAULT 0,
+            details_json TEXT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    } catch (Throwable $e) {}
 }
 
 function ensureAchievementsColorColumn(): void {
     global $pdo;
     static $checked = false;
-    if ($checked) return;
+    if ($checked || !$pdo) return;
     $checked = true;
 
-    $cols = array_column($pdo->query("SHOW COLUMNS FROM achievements")->fetchAll(), 'Field');
-    if (!in_array('color', $cols)) {
-        $pdo->exec("ALTER TABLE achievements ADD COLUMN color VARCHAR(7) NOT NULL DEFAULT '#4F46E5' AFTER icon");
-        // Atualiza cores por tipo de condição
-        $colorMap = ['games_played' => '#4F46E5', 'xp_total' => '#F59E0B', 'level' => '#10B981'];
-        foreach ($pdo->query('SELECT id, condition_type FROM achievements')->fetchAll() as $a) {
-            $color = $colorMap[$a['condition_type']] ?? '#4F46E5';
-            $pdo->prepare('UPDATE achievements SET color = ? WHERE id = ?')->execute([$color, $a['id']]);
+    try {
+        $cols = array_column($pdo->query("SHOW COLUMNS FROM achievements")->fetchAll(), 'Field');
+        if (!in_array('color', $cols)) {
+            $pdo->exec("ALTER TABLE achievements ADD COLUMN color VARCHAR(7) NOT NULL DEFAULT '#4F46E5' AFTER icon");
+            $colorMap = ['games_played' => '#4F46E5', 'xp_total' => '#F59E0B', 'level' => '#10B981'];
+            foreach ($pdo->query('SELECT id, condition_type FROM achievements')->fetchAll() as $a) {
+                $color = $colorMap[$a['condition_type']] ?? '#4F46E5';
+                $pdo->prepare('UPDATE achievements SET color = ? WHERE id = ?')->execute([$color, $a['id']]);
+            }
         }
-    }
+    } catch (Throwable $e) {}
 }
 
 function ensureDefaultDataExists(): void {
@@ -170,12 +184,14 @@ function ensureDefaultDataExists(): void {
     } catch (Exception $e) {}
 }
 
-ensureProfilePhotoColumn();
-ensureAvatarColorColumn();
-ensureTargetUserIdColumn();
-ensureClassRecoverySchema();
-ensureAchievementsColorColumn();
-ensureDefaultDataExists();
+try {
+    ensureProfilePhotoColumn();
+    ensureAvatarColorColumn();
+    ensureTargetUserIdColumn();
+    ensureClassRecoverySchema();
+    ensureAchievementsColorColumn();
+    ensureDefaultDataExists();
+} catch (Throwable $e) {}
 
 // ─── CSRF ────────────────────────────────────────────────────────────────────
 
@@ -286,10 +302,13 @@ function loginUser(string $email, string $password, bool $rememberMe = false): a
     $_SESSION['just_logged_in'] = true;
 
     $cookieLifetime = $rememberMe ? (30 * 86400) : 0;
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+               || (($_SERVER['SERVER_PORT'] ?? 80) == 443)
+               || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
     setcookie(session_name(), session_id(), [
         'expires'  => $rememberMe ? (time() + $cookieLifetime) : 0,
         'path'     => '/',
-        'secure'   => false,
+        'secure'   => $isHttps,
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
@@ -302,7 +321,7 @@ function loginUser(string $email, string $password, bool $rememberMe = false): a
         setcookie('vortex_remember', $rememberData, [
             'expires'  => time() + $cookieLifetime,
             'path'     => '/',
-            'secure'   => false,
+            'secure'   => $isHttps,
             'httponly' => true,
             'samesite' => 'Lax',
         ]);
