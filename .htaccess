@@ -1,16 +1,13 @@
 # MathPlay Solutions - Apache Configuration
 DirectoryIndex index.php
 
-# Proteger arquivos sensiveis
-<FilesMatch "^\.(env|git)">
-    <IfModule mod_authz_core.c>
-        Require all denied
-    </IfModule>
-    <IfModule !mod_authz_core.c>
-        Order allow,deny
-        Deny from all
-    </IfModule>
-</FilesMatch>
+# Proteger arquivos sensiveis (.env, .sql)
+<Files ".env">
+    Require all denied
+</Files>
+<Files "vortex_banco.sql">
+    Require all denied
+</Files>
 
 # Charset padrao
 AddDefaultCharset UTF-8

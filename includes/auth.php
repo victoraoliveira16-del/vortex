@@ -184,14 +184,17 @@ function ensureDefaultDataExists(): void {
     } catch (Exception $e) {}
 }
 
-try {
-    ensureProfilePhotoColumn();
-    ensureAvatarColorColumn();
-    ensureTargetUserIdColumn();
-    ensureClassRecoverySchema();
-    ensureAchievementsColorColumn();
-    ensureDefaultDataExists();
-} catch (Throwable $e) {}
+global $isLocalhost;
+if (!empty($isLocalhost)) {
+    try {
+        ensureProfilePhotoColumn();
+        ensureAvatarColorColumn();
+        ensureTargetUserIdColumn();
+        ensureClassRecoverySchema();
+        ensureAchievementsColorColumn();
+        ensureDefaultDataExists();
+    } catch (Throwable $e) {}
+}
 
 // ─── CSRF ────────────────────────────────────────────────────────────────────
 

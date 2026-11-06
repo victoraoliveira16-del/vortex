@@ -107,7 +107,7 @@ CREATE TABLE `users` (
 ) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO `users` (`id`, `name`, `email`, `password_hash`, `role`, `profile_photo`, `level`, `xp`, `created_at`, `avatar_color`, `class_id`) VALUES
-('1', 'Professor Carlos Silva', 'professor@mathplay.com', '$2y$10$R7yXgWjvivBA1Zrk9YfTbOfBs9EWpijEoOdnHcx5xIs750C9a3TQK', 'teacher', NULL, '7', '696', '2026-09-02 16:33:25', '#4F46E5', NULL),
+('1', 'Professor Carlos Silva', 'professor@mathplay.com', '$2y$10$QQM1DRL9hRx2EdmmXb8Fb.wk9G67nb5M8mo4tfkGsU9WKtitALWA.', 'teacher', NULL, '7', '696', '2026-09-02 16:33:25', '#4F46E5', NULL),
 ('9', 'jacinto', 'jacinto@gmail.com', '$2y$10$6mBMoabCV/LyttDsS3vkguoTrcEwmmw1X6xOrxcjjOPn6I4eEOkMy', 'student', NULL, '1', '0', '2026-10-21 13:58:56', '#DC2626', NULL);
 
 -- Tabela `recoveries`

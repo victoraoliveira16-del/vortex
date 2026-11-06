@@ -1,34 +1,48 @@
 <?php
 require_once __DIR__ . '/../config.php';
 
-$attempts = [];
-$seen = [];
-foreach ([DB_USER, 'root'] as $user) {
-    foreach ([DB_PASS, '', 'mysql'] as $pass) {
-        $key = $user . "\0" . $pass;
-        if (isset($seen[$key])) {
-            continue;
-        }
-        $seen[$key] = true;
-        $attempts[] = [$user, $pass];
-    }
-}
-
 $pdo = null;
 $lastError = null;
-foreach ($attempts as [$user, $pass]) {
+
+if (!empty($isLocalhost)) {
+    // Ambiente Local (Laragon): tenta as credenciais e faz fallback se necessário
+    $attempts = [
+        [DB_USER, DB_PASS],
+        ['root', 'mysql'],
+        ['root', '']
+    ];
+    foreach ($attempts as [$user, $pass]) {
+        try {
+            $pdo = new PDO(
+                'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';charset=utf8mb4',
+                $user,
+                $pass,
+                [
+                    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::ATTR_EMULATE_PREPARES   => false,
+                    PDO::ATTR_TIMEOUT            => 3,
+                ]
+            );
+            break;
+        } catch (PDOException $e) {
+            $lastError = $e;
+        }
+    }
+} else {
+    // Ambiente de Produção (InfinityFree): tenta apenas 1 vez com timeout rápido para não estourar os 20s do PHP
     try {
         $pdo = new PDO(
             'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';charset=utf8mb4',
-            $user,
-            $pass,
+            DB_USER,
+            DB_PASS,
             [
                 PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES   => false,
+                PDO::ATTR_TIMEOUT            => 5,
             ]
         );
-        break;
     } catch (PDOException $e) {
         $lastError = $e;
     }
